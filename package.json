@@ -1,0 +1,30 @@
+{
+  "name": "dispatchly-monorepo",
+  "version": "1.0.0",
+  "description": "Last-Mile Dynamic Technician Dispatcher",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix client",
+    "dev:all": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "test:server": "npm run test --prefix server",
+    "test:e2e": "npm run test:e2e --prefix server",
+    "test:all": "npm run test:all --prefix server",
+    "seed": "npm run seed --prefix server",
+    "seed:reset": "npm run seed --prefix server",
+    "benchmark": "node server/src/scripts/benchmarkLatency.js",
+    "sim:tech": "npm run sim:tech --prefix server",
+    "dispatch:demo": "npm run dispatch:demo --prefix server"
+  },
+  "keywords": [
+    "dispatch",
+    "technician",
+    "marketplace",
+    "geospatial",
+    "sla"
+  ],
+  "author": "",
+  "license": "ISC"
+}
