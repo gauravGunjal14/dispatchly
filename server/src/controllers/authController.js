@@ -103,11 +103,12 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const isDemoMode = process.env.DEMO_MODE === 'true';
 
     let user = await User.findOne({ email }).select('+passwordHash');
 
-    // Auto-bootstrap demo accounts on-demand if database was not yet seeded
-    if (!user && DEMO_ACCOUNTS[email] && password === 'password123') {
+    // Auto-bootstrap demo accounts on-demand ONLY if DEMO_MODE is explicitly enabled (disabled in production)
+    if (isDemoMode && !user && DEMO_ACCOUNTS[email] && password === 'password123') {
       try {
         const demo = DEMO_ACCOUNTS[email];
         user = await User.create({
@@ -167,8 +168,8 @@ const login = async (req, res, next) => {
     }
 
     let isMatch = await user.comparePassword(password);
-    // If it's a demo account and password is password123, re-sync password hash automatically
-    if (!isMatch && DEMO_ACCOUNTS[email] && password === 'password123') {
+    // If it's a demo account, DEMO_MODE is true, and password is password123, re-sync password hash automatically
+    if (isDemoMode && !isMatch && DEMO_ACCOUNTS[email] && password === 'password123') {
       user.passwordHash = 'password123';
       await user.save();
       isMatch = true;

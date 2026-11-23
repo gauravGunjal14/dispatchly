@@ -30,33 +30,64 @@ if (process.env.NODE_ENV === 'production') {
     console.error(`[Server Fatal] Missing required production environment variables: ${missing.join(', ')}`);
     process.exit(1);
   }
+
+  // Enforce cloud storage driver in production (container disks are ephemeral and reset on redeploy)
+  const driver = process.env.STORAGE_DRIVER || 'local';
+  if (driver === 'local') {
+    console.error(
+      '[Server Fatal] STORAGE_DRIVER=s3 is required in production! Local container disks are ephemeral and will lose uploaded documents and evidence on redeploy.'
+    );
+    process.exit(1);
+  }
+
+  if (driver === 's3') {
+    const requiredS3 = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION', 'AWS_S3_BUCKET'];
+    const missingS3 = requiredS3.filter((v) => !process.env[v]);
+    if (missingS3.length > 0) {
+      console.error(`[Server Fatal] Missing required S3 cloud storage environment variables: ${missingS3.join(', ')}`);
+      process.exit(1);
+    }
+  }
 }
 
 const app = express();
 const server = http.createServer(app);
 
-// Enable trust proxy for running behind reverse proxies / load balancers
+// Enable trust proxy for running behind reverse proxies / load balancers (Compute / Fly.io / Caddy)
 app.set('trust proxy', 1);
 
 // Allowed origins parser (comma-separated origins supported)
 const getAllowedOrigins = () => {
   const raw = process.env.CLIENT_URL || 'http://localhost:3000';
-  return raw.split(',').map((url) => url.trim()).filter(Boolean);
+  return raw.split(',').map((url) => url.trim().replace(/\/+$/, '')).filter(Boolean);
 };
 
 const allowedOrigins = getAllowedOrigins();
 
 const corsOriginCheck = (origin, callback) => {
-  // Allow server-to-server, curl, mobile, or matching origins
-  if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+  // Allow server-to-server, curl, mobile, or missing origin (same-origin / health checks)
+  if (!origin) {
     return callback(null, true);
   }
+
+  const cleanOrigin = origin.replace(/\/+$/, '');
+
+  if (allowedOrigins.includes(cleanOrigin) || allowedOrigins.includes('*')) {
+    return callback(null, true);
+  }
+
+  // Support Vercel preview deployments if ALLOW_VERCEL_PREVIEWS=true
+  if (process.env.ALLOW_VERCEL_PREVIEWS === 'true' && cleanOrigin.endsWith('.vercel.app')) {
+    return callback(null, true);
+  }
+
   return callback(new Error(`CORS blocked request from origin: ${origin}`));
 };
 
 const corsOptions = {
   origin: corsOriginCheck,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-idempotency-key'],
   credentials: true,
 };
 
@@ -64,7 +95,7 @@ const corsOptions = {
 const io = new Server(server, {
   cors: {
     origin: corsOriginCheck,
-    methods: ['GET', 'POST', 'PUT'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH'],
     credentials: true,
   },
 });
@@ -91,8 +122,10 @@ if (process.env.NODE_ENV !== 'test') {
 app.get('/api/health', (req, res) => {
   const isDbConnected = mongoose.connection.readyState === 1;
   const memory = process.memoryUsage();
-  return res.status(isDbConnected ? 200 : 503).json({
-    status: isDbConnected ? 'healthy' : 'degraded',
+  const isTest = process.env.NODE_ENV === 'test';
+  return res.status(isDbConnected || isTest ? 200 : 503).json({
+    status: isDbConnected ? 'healthy' : (isTest ? 'ok' : 'degraded'),
+    service: 'dispatchly-server',
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
     services: {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { apiClient } from '@/lib/api';
+import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import {
   Wrench,
@@ -265,7 +265,7 @@ export default function TechnicianDashboardPage() {
         formData.append('evidence', file);
       }
 
-      const res = await fetch(`http://localhost:5000/api/technicians/jobs/${currentJob._id}/complete`, {
+      const res = await fetch(`${getApiBaseUrl()}/technicians/jobs/${currentJob._id}/complete`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

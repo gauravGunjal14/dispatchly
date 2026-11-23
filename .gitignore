@@ -35,11 +35,14 @@ pnpm-debug.log*
 # Environment files
 .env
 .env.local
+.env.example
 .env.development.local
 .env.test.local
 .env.production.local
 server/.env
+server/.env.example
 client/.env.local
+server/.env.example
 
 # Vercel & IDE
 .vercel

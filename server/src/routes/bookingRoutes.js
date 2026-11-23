@@ -37,10 +37,25 @@ router.post(
 // Quotation inspection & customer decision
 router.get('/:id/quote', authenticateToken, quoteController.getBookingQuote);
 router.put('/:id/quote', authenticateToken, authorizeRoles('customer'), quoteController.decideQuote);
+router.post(
+  '/:id/quote/approve',
+  authenticateToken,
+  authorizeRoles('customer'),
+  (req, res, next) => {
+    req.body = { ...req.body, action: 'approve' };
+    return quoteController.decideQuote(req, res, next);
+  }
+);
 
 // Completion verification & dispute
 router.post(
   '/:id/verify-completion',
+  authenticateToken,
+  authorizeRoles('customer', 'admin'),
+  completionController.verifyCompletion
+);
+router.post(
+  '/:id/completion/verify',
   authenticateToken,
   authorizeRoles('customer', 'admin'),
   completionController.verifyCompletion
@@ -58,6 +73,7 @@ router.get('/:id/evidence/:filename', authenticateToken, completionController.ge
 
 // Payment
 router.post('/:id/pay', authenticateToken, authorizeRoles('customer'), paymentController.payBooking);
+router.post('/:id/payment', authenticateToken, authorizeRoles('customer'), paymentController.payBooking);
 router.get('/:id/payment', authenticateToken, paymentController.getBookingPayment);
 
 // Review

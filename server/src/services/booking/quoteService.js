@@ -76,11 +76,16 @@ class QuoteService {
    * Customer approves or rejects the quote.
    */
   async decideQuote({ quoteId, customerId, action, rejectionReason = '' }) {
-    if (!['approved', 'rejected'].includes(action)) {
+    const normalizedAction = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action;
+    if (!['approved', 'rejected'].includes(normalizedAction)) {
       throw new Error('Action must be either "approved" or "rejected"');
     }
 
-    const quote = await Quote.findById(quoteId).populate('booking');
+    let quote = await Quote.findById(quoteId).populate('booking');
+    if (!quote) {
+      // Allow passing bookingId directly
+      quote = await Quote.findOne({ booking: quoteId }).populate('booking');
+    }
     if (!quote) throw new Error('Quote not found');
 
     const booking = quote.booking;
@@ -94,17 +99,28 @@ class QuoteService {
       throw new Error(`Quote cannot be decided: already in status "${quote.status}"`);
     }
 
-    quote.status = action;
+    quote.status = normalizedAction;
     quote.decidedAt = new Date();
-    if (action === 'rejected') {
+    if (normalizedAction === 'rejected') {
       quote.rejectionReason = rejectionReason;
     }
 
     await quote.save();
 
-    if (action === 'approved') {
+    if (normalizedAction === 'approved') {
       // Update booking pricing with approved quote total
+      if (!booking.pricing) booking.pricing = {};
       booking.pricing.baseAmount = quote.total;
+      if (booking.status === 'arrived') {
+        booking.status = 'in_progress';
+        booking.startedAt = new Date();
+        booking.statusHistory.push({
+          status: 'in_progress',
+          changedBy: customerId,
+          note: 'Quotation approved by customer; work commenced',
+          timestamp: new Date(),
+        });
+      }
       await booking.save();
     }
 

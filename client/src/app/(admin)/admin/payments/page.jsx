@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
+import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { 
   DollarSign, 
   RotateCcw, 
@@ -73,7 +73,7 @@ export default function AdminPaymentsPage() {
   const handleExportCsv = async () => {
     try {
       const token = localStorage.getItem('dispatchly_access_token');
-      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/admin/reports/payments`;
+      const url = `${getApiBaseUrl()}/admin/reports/payments`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();

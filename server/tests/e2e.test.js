@@ -13,6 +13,7 @@ const Payment = require('../src/models/Payment');
 const PlatformFee = require('../src/models/PlatformFee');
 const Dispute = require('../src/models/Dispute');
 const Review = require('../src/models/Review');
+const InventoryItem = require('../src/models/InventoryItem');
 const kpiService = require('../src/services/kpi/kpiService');
 
 const genKey = (prefix = 'idemp') => `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
@@ -109,18 +110,46 @@ describe('Dispatchly End-to-End (E2E) Marketplace Verification Suite', () => {
         techPlumberProfile = await TechnicianProfile.create({
           user: techPlumber._id,
           serviceCategories: ['plumbing'],
-          skills: ['pipe_soldering', 'leak_detection'],
+          skills: ['pipe_soldering', 'leak_detection', 'drain_cleaning', 'pipe_repair', 'copper_soldering'],
           experienceYears: 5,
           serviceArea: { center: { type: 'Point', coordinates: [-122.4194, 37.7749] }, radiusKm: 30 },
-          currentLocation: { type: 'Point', coordinates: [-122.42, 37.775] },
+          currentLocation: { type: 'Point', coordinates: [-122.42, 37.775], updatedAt: new Date() },
           verificationStatus: 'approved',
           isAvailable: true,
+          activeJobCount: 0,
+          workingHours: { days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], start: '00:00', end: '23:59' },
         });
       } else {
         techPlumberProfile.verificationStatus = 'approved';
         techPlumberProfile.isAvailable = true;
+        techPlumberProfile.activeJobCount = 0;
+        techPlumberProfile.serviceCategories = ['plumbing'];
+        techPlumberProfile.skills = ['pipe_soldering', 'leak_detection', 'drain_cleaning', 'pipe_repair', 'copper_soldering'];
+        techPlumberProfile.currentLocation = { type: 'Point', coordinates: [-122.42, 37.775], updatedAt: new Date() };
+        techPlumberProfile.workingHours = { days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], start: '00:00', end: '23:59' };
         await techPlumberProfile.save();
       }
+
+      // Ensure inventory items exist for techPlumberProfile so required parts reservation succeeds
+      await InventoryItem.deleteMany({ technician: techPlumberProfile._id });
+      await InventoryItem.create([
+        {
+          technician: techPlumberProfile._id,
+          name: 'Copper Pipe Fitting 1/2"',
+          partCode: 'PIPE_COPPER_12',
+          quantity: 20,
+          reservedQuantity: 0,
+          unitCost: 5.0,
+        },
+        {
+          technician: techPlumberProfile._id,
+          name: 'Brass Coupling 1/2"',
+          partCode: 'COUPLING-01',
+          quantity: 20,
+          reservedQuantity: 0,
+          unitCost: 8.0,
+        },
+      ]);
 
       // 4. Delivery Partner Technician
       techDelivery = await User.findOne({ email: 'delivery.e2e@test.com' });
@@ -419,10 +448,12 @@ describe('Dispatchly End-to-End (E2E) Marketplace Verification Suite', () => {
       const quote = await Quote.create({
         booking: booking._id,
         technician: techPlumberProfile._id,
-        laborCost: 150.0,
-        partsCost: 80.0,
-        totalAmount: 230.0,
-        scopeOfWork: 'Replace corroded galvanized lines with copper.',
+        lineItems: [
+          { description: 'Labor - Re-piping inspection', qty: 2, unitPrice: 75.0, total: 150.0 },
+          { description: 'Copper Pipes & Fittings', qty: 1, unitPrice: 80.0, total: 80.0 },
+        ],
+        total: 230.0,
+        notes: 'Replace corroded galvanized lines with copper.',
         status: 'pending',
       });
 
@@ -537,6 +568,18 @@ describe('Dispatchly End-to-End (E2E) Marketplace Verification Suite', () => {
         raisedBy: customerA._id,
         reason: 'Technician left without tightening compression nut.',
         status: 'open',
+      });
+
+      // Seed payment record for the disputed booking so refund resolution succeeds
+      await Payment.create({
+        booking: booking._id,
+        customer: customerA._id,
+        technician: techPlumberProfile._id,
+        amount: 95.0,
+        currency: 'USD',
+        status: 'captured',
+        paymentMethod: 'card_demo',
+        idempotencyKey: genKey('flow6_pay'),
       });
 
       // Admin resolves dispute

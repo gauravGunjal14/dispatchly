@@ -123,22 +123,38 @@ const createNextOffer = async (bookingId) => {
   const { eligible, rejected } = await filterCandidates(technicians, booking, settings);
 
   if (eligible.length === 0) {
-    booking.dispatch.state = 'exhausted';
-    booking.status = 'failed';
-    booking.dispatchHistory.push({
-      event: 'exhausted',
-      at: new Date(),
-      meta: {
-        reason: 'No eligible candidates available matching criteria',
-        rejectedCount: rejected.length,
-        rejectedSummary: rejected.map((r) => ({
-          technicianId: r.technician._id,
-          reason: r.reason,
-          code: r.code,
-        })),
+    const updatedBooking = await Booking.findOneAndUpdate(
+      {
+        _id: booking._id,
+        status: { $in: ['pending', 'searching', 'offered'] },
       },
-    });
-    await booking.save();
+      {
+        $set: {
+          'dispatch.state': 'exhausted',
+          status: 'failed',
+        },
+        $push: {
+          dispatchHistory: {
+            event: 'exhausted',
+            at: new Date(),
+            meta: {
+              reason: 'No eligible candidates available matching criteria',
+              rejectedCount: rejected.length,
+              rejectedSummary: rejected.map((r) => ({
+                technicianId: r.technician._id,
+                reason: r.reason,
+                code: r.code,
+              })),
+            },
+          },
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedBooking) {
+      return { status: 'already_terminal_or_assigned', booking, rejectedCandidates: rejected };
+    }
 
     emitToTicket(booking._id, 'booking:status', {
       bookingId: booking._id,
@@ -152,7 +168,7 @@ const createNextOffer = async (bookingId) => {
       rejectedCount: rejected.length,
     });
 
-    return { status: 'exhausted', booking, rejectedCandidates: rejected };
+    return { status: 'exhausted', booking: updatedBooking, rejectedCandidates: rejected };
   }
 
   // Pre-fetch inventories for eligible technicians if parts are required

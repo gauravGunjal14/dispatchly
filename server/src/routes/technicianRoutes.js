@@ -57,6 +57,18 @@ router.patch(
 );
 
 // Active Jobs & Technician Dispatch Actions
+router.post(
+  '/offers/:id/accept',
+  authenticateToken,
+  authorizeRoles('technician'),
+  dispatchController.acceptMyOffer
+);
+router.post(
+  '/offers/:id/reject',
+  authenticateToken,
+  authorizeRoles('technician'),
+  dispatchController.rejectMyOffer
+);
 router.get(
   '/jobs/current',
   authenticateToken,

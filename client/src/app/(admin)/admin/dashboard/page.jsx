@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { apiClient } from '@/lib/api';
+import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import {
   ShieldCheck,
@@ -125,7 +125,7 @@ export default function AdminDashboardExecutive() {
       setExporting(true);
       const { from, to } = getDateRange(dateRangePreset);
       const token = localStorage.getItem('dispatchly_access_token');
-      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/admin/reports/${reportType}?from=${from}&to=${to}&category=${categoryFilter}`;
+      const url = `${getApiBaseUrl()}/admin/reports/${reportType}?from=${from}&to=${to}&category=${categoryFilter}`;
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },

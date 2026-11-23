@@ -17,15 +17,15 @@ const { emitToUser, emitToAdmin } = require('./socketService');
  * @param {object} [params.data]
  * @returns {Promise<object>}
  */
-const createNotification = async ({ userId, type, title, body, data = {} }) => {
+const createNotification = async ({ userId, type, title, body, message, data = {} }) => {
   if (!userId) return null;
 
   try {
     const notification = await Notification.create({
       user: userId,
-      type,
-      title,
-      body,
+      type: type || 'system',
+      title: title || 'Notification',
+      body: body || message || title || 'Notification update',
       data,
     });
 

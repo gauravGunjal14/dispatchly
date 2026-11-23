@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { apiClient } from '@/lib/api';
+import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { 
   ShieldCheck, 
   CheckCircle, 
@@ -111,7 +111,7 @@ export default function AdminTechniciansPage() {
   const handleDownloadDoc = async (docId, fileName) => {
     try {
       const token = localStorage.getItem('dispatchly_access_token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/technicians/documents/${docId}/download`, {
+      const res = await fetch(`${getApiBaseUrl()}/technicians/documents/${docId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to download document');

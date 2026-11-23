@@ -12,7 +12,7 @@ function LoginForm() {
   const { login } = useAuth();
 
   const [email, setEmail] = useState(searchParams.get('email') || '');
-  const [password, setPassword] = useState('password123');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,36 +54,38 @@ function LoginForm() {
         </div>
       )}
 
-      {/* Quick Demo Pre-fill Bar */}
-      <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 text-xs space-y-2">
-        <div className="font-semibold text-slate-700 flex items-center space-x-1">
-          <UserCheck className="w-3.5 h-3.5" />
-          <span>Quick Demo One-Click Selectors:</span>
+      {/* Quick Demo Pre-fill Bar (Visible only when DEMO_MODE is true) */}
+      {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+        <div className="bg-slate-100 p-3 rounded-xl border border-slate-200 text-xs space-y-2">
+          <div className="font-semibold text-slate-700 flex items-center space-x-1">
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Quick Demo One-Click Selectors:</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleQuickFill('customer@dispatchly.com', 'password123', 'customer')}
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition text-center"
+            >
+              👤 Customer
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill('plumber@dispatchly.com', 'password123', 'technician')}
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 transition text-center"
+            >
+              🔧 Technician
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill('admin@dispatchly.com', 'password123', 'admin')}
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 transition text-center"
+            >
+              ⚡ Admin
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          <button
-            type="button"
-            onClick={() => handleQuickFill('customer@dispatchly.com', 'password123', 'customer')}
-            className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition text-center"
-          >
-            👤 Customer
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill('plumber@dispatchly.com', 'password123', 'technician')}
-            className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 transition text-center"
-          >
-            🔧 Technician
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill('admin@dispatchly.com', 'password123', 'admin')}
-            className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 transition text-center"
-          >
-            ⚡ Admin
-          </button>
-        </div>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div>

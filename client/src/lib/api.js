@@ -1,6 +1,17 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const getApiBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'NEXT_PUBLIC_API_URL environment variable is missing in production! Please configure it in your Vercel deployment settings.'
+    );
+  }
+  return 'http://localhost:5000/api';
+};
 
 export const apiClient = async (endpoint, options = {}) => {
+  const API_BASE = getApiBaseUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('dispatchly_access_token') : null;
 
   const headers = {

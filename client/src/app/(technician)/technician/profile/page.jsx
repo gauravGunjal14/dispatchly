@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/context/AuthContext';
-import { apiClient } from '@/lib/api';
+import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { 
   Wrench, 
   MapPin, 
@@ -137,7 +137,7 @@ export default function TechnicianProfilePage() {
 
           const token = localStorage.getItem('dispatchly_access_token');
           const uploadRes = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/technicians/me/documents`,
+            `${getApiBaseUrl()}/technicians/me/documents`,
             {
               method: 'POST',
               headers: { Authorization: `Bearer ${token}` },
@@ -193,7 +193,7 @@ export default function TechnicianProfilePage() {
       formData.append('docType', docType);
 
       const token = localStorage.getItem('dispatchly_access_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/technicians/me/documents`, {
+      const response = await fetch(`${getApiBaseUrl()}/technicians/me/documents`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -219,7 +219,7 @@ export default function TechnicianProfilePage() {
   const handleDownloadDoc = async (docId, fileName) => {
     try {
       const token = localStorage.getItem('dispatchly_access_token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/technicians/documents/${docId}/download`, {
+      const res = await fetch(`${getApiBaseUrl()}/technicians/documents/${docId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to download');
@@ -524,19 +524,21 @@ export default function TechnicianProfilePage() {
               </p>
             </div>
 
-            {/* Quick Sample Document Generator */}
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <div className="text-xs text-blue-800">
-                <span className="font-bold">Need a demo file?</span> Click below to attach a pre-validated dummy trade license PDF.
+            {/* Quick Sample Document Generator (Demo mode only) */}
+            {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="text-xs text-blue-800">
+                  <span className="font-bold">Need a demo file?</span> Click below to attach a pre-validated dummy trade license PDF.
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAttachSampleDoc}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-sm transition"
+                >
+                  Attach Sample License (PDF)
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleAttachSampleDoc}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-sm transition"
-              >
-                Attach Sample License (PDF)
-              </button>
-            </div>
+            )}
 
             {/* Upload Box */}
             <form onSubmit={handleUploadDocument} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">

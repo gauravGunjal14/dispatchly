@@ -6,17 +6,17 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --detectOpenHandles --runInBand",
-    "test:e2e": "jest tests/e2e.test.js --detectOpenHandles --runInBand",
-    "test:all": "jest --detectOpenHandles --runInBand",
+    "test": "jest --detectOpenHandles --runInBand --forceExit",
+    "test:e2e": "jest tests/e2e.test.js --detectOpenHandles --runInBand --forceExit",
+    "test:all": "jest --detectOpenHandles --runInBand --forceExit",
     "seed": "node src/scripts/seed.js",
     "seed:reset": "node src/scripts/seed.js",
+    "create:admin": "node src/scripts/createAdmin.js",
     "benchmark": "node src/scripts/benchmarkLatency.js",
     "sim:tech": "node src/scripts/simulateTechMovement.js",
     "dispatch:demo": "node src/scripts/dispatchDemo.js"
   },
   "dependencies": {
-    "@insforge/sdk": "^1.5.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

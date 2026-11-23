@@ -122,7 +122,7 @@ const rejectMyOffer = async (req, res, next) => {
       });
     }
 
-    const { reason } = req.body;
+    const reason = req.body.reason || req.body.rejectReason;
     const result = await rejectOffer(req.params.id, profile._id, reason);
 
     return res.json({

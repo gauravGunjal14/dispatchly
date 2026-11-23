@@ -1,230 +1,365 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NotificationBell from './NotificationBell';
-import { 
-  Wrench, 
-  MapPin, 
-  Clock, 
-  ShieldCheck, 
-  User as UserIcon, 
-  LogOut, 
-  Package, 
-  Sliders, 
-  Layers
-} from 'lucide-react';
+import { Button } from '@/components/ui';
+import { Menu, X, LogOut, ArrowRight } from 'lucide-react';
 
 export default function Navbar() {
   const { user, isAuthenticated, role, logout } = useAuth();
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const getRoleBadge = (userRole) => {
-    switch (userRole) {
-      case 'technician':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">Technician</span>;
-      case 'admin':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">Dispatcher / Admin</span>;
-      default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-300">Customer</span>;
-    }
+  const getDashboardHref = () => {
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'technician') return '/technician/dashboard';
+    return '/dashboard';
+  };
+
+  const getRoleBadgeLabel = () => {
+    if (role === 'admin') return 'Dispatcher / Admin';
+    if (role === 'technician') return 'Technician';
+    return 'Customer';
   };
 
   return (
-    <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Brand Logo */}
-          <div className="flex items-center space-x-3">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="bg-blue-600 text-white p-2 rounded-xl shadow-md flex items-center justify-center">
-                <Wrench className="w-5 h-5" />
+    <nav className="bg-white border-b border-line sticky top-0 z-50">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Brand Logo: Wordmark + Geometric Amber Square with Ink Pin */}
+          <div className="flex items-center space-x-6">
+            <Link
+              href="/"
+              className="flex items-center space-x-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 rounded-control"
+            >
+              <div className="w-8 h-8 rounded-control bg-amber flex items-center justify-center border border-ink/10 flex-shrink-0">
+                <div className="w-3 h-3 rounded-full bg-ink relative">
+                  <div className="absolute -right-1 -top-1 w-1.5 h-1.5 rounded-full bg-ink" />
+                </div>
               </div>
-              <span className="font-extrabold text-xl tracking-tight text-slate-900">
-                Dispatch<span className="text-blue-600">ly</span>
+              <span className="font-headline font-bold text-xl tracking-tight text-ink">
+                Dispatchly
               </span>
             </Link>
 
-            {/* Navigation Links based on role */}
-            <div className="hidden md:flex ml-8 space-x-2">
-              {role === 'customer' && (
-                <>
-                  <Link
-                    href="/dashboard"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/dashboard' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Services & Request
-                  </Link>
-                  <Link
-                    href="/bookings"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/bookings' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    My Bookings
-                  </Link>
-                </>
-              )}
+            {/* Public navigation links on landing page */}
+            {pathname === '/' && (
+              <div className="hidden md:flex items-center space-x-6 text-sm font-medium text-ink/80">
+                <a href="#services" className="hover:text-ink transition-colors">
+                  Services
+                </a>
+                <a href="#how-it-works" className="hover:text-ink transition-colors">
+                  How it works
+                </a>
+                <a href="#for-technicians" className="hover:text-ink transition-colors">
+                  For technicians
+                </a>
+              </div>
+            )}
 
-              {role === 'technician' && (
-                <>
-                  <Link
-                    href="/technician/dashboard"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/technician/dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Dashboard & Offers
-                  </Link>
-                  <Link
-                    href="/technician/inventory"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/technician/inventory' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Parts Inventory
-                  </Link>
-                  <Link
-                    href="/technician/earnings"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/technician/earnings' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Earnings
-                  </Link>
-                </>
-              )}
+            {/* Authenticated Customer navigation links */}
+            {isAuthenticated && role === 'customer' && pathname !== '/' && (
+              <div className="hidden md:flex items-center space-x-2 text-sm font-medium">
+                <Link
+                  href="/dashboard"
+                  className={`px-3 py-1.5 rounded-control transition-colors ${
+                    pathname === '/dashboard' ? 'bg-concrete text-ink font-semibold' : 'text-ink/70 hover:text-ink'
+                  }`}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/book"
+                  className={`px-3 py-1.5 rounded-control transition-colors ${
+                    pathname === '/book' ? 'bg-concrete text-ink font-semibold' : 'text-ink/70 hover:text-ink'
+                  }`}
+                >
+                  Book a service
+                </Link>
+                <Link
+                  href="/bookings"
+                  className={`px-3 py-1.5 rounded-control transition-colors ${
+                    pathname === '/bookings' ? 'bg-concrete text-ink font-semibold' : 'text-ink/70 hover:text-ink'
+                  }`}
+                >
+                  My bookings
+                </Link>
+              </div>
+            )}
 
-              {role === 'admin' && (
-                <>
-                  <Link
-                    href="/admin/dashboard"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/dashboard' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Console
-                  </Link>
-                  <Link
-                    href="/admin/dispatch"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/dispatch' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Dispatch Engine
-                  </Link>
-                  <Link
-                    href="/admin/disputes"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/disputes' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Disputes
-                  </Link>
-                  <Link
-                    href="/admin/bookings"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/bookings' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Bookings
-                  </Link>
-                  <Link
-                    href="/admin/technicians"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/technicians' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Technicians
-                  </Link>
-                  <Link
-                    href="/admin/services"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/services' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Services
-                  </Link>
-                  <Link
-                    href="/admin/users"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/users' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Users
-                  </Link>
-                  <Link
-                    href="/admin/payments"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/payments' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Payments
-                  </Link>
-                  <Link
-                    href="/admin/audit-logs"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/audit-logs' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Audit
-                  </Link>
-                  <Link
-                    href="/admin/settings"
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      pathname === '/admin/settings' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Settings
-                  </Link>
-                </>
-              )}
-            </div>
+            {/* Authenticated Technician navigation links */}
+            {isAuthenticated && role === 'technician' && pathname !== '/' && (
+              <div className="hidden md:flex items-center space-x-2 text-sm font-medium">
+                <Link
+                  href="/technician/dashboard"
+                  className={`px-3 py-1.5 rounded-control transition-colors ${
+                    pathname === '/technician/dashboard' ? 'bg-concrete text-ink font-semibold' : 'text-ink/70 hover:text-ink'
+                  }`}
+                >
+                  Offers & jobs
+                </Link>
+                <Link
+                  href="/technician/inventory"
+                  className={`px-3 py-1.5 rounded-control transition-colors ${
+                    pathname === '/technician/inventory' ? 'bg-concrete text-ink font-semibold' : 'text-ink/70 hover:text-ink'
+                  }`}
+                >
+                  Parts inventory
+                </Link>
+                <Link
+                  href="/technician/earnings"
+                  className={`px-3 py-1.5 rounded-control transition-colors ${
+                    pathname === '/technician/earnings' ? 'bg-concrete text-ink font-semibold' : 'text-ink/70 hover:text-ink'
+                  }`}
+                >
+                  Earnings
+                </Link>
+                <Link
+                  href="/technician/profile"
+                  className={`px-3 py-1.5 rounded-control transition-colors ${
+                    pathname === '/technician/profile' ? 'bg-concrete text-ink font-semibold' : 'text-ink/70 hover:text-ink'
+                  }`}
+                >
+                  Profile
+                </Link>
+              </div>
+            )}
+
+            {/* Authenticated Admin link to console */}
+            {isAuthenticated && role === 'admin' && pathname !== '/' && (
+              <div className="hidden md:flex items-center space-x-2 text-sm font-medium">
+                <Link
+                  href="/admin/dashboard"
+                  className="px-3 py-1.5 rounded-control bg-concrete text-ink font-semibold"
+                >
+                  Admin console
+                </Link>
+              </div>
+            )}
           </div>
 
-          {/* User profile / Auth buttons */}
-          <div className="flex items-center space-x-3">
+          {/* Right Action Controls */}
+          <div className="hidden md:flex items-center space-x-3">
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 <NotificationBell />
 
-                <div className="text-right hidden sm:block">
-                  <div className="text-sm font-semibold text-slate-800 leading-tight">{user?.name}</div>
-                  <div className="mt-0.5">{getRoleBadge(role)}</div>
+                <div className="text-right">
+                  <div className="text-xs font-semibold text-ink leading-tight">{user?.name}</div>
+                  <div className="text-[11px] text-ink/60">{getRoleBadgeLabel()}</div>
                 </div>
 
+                <Link href={getDashboardHref()}>
+                  <Button variant="outline" size="sm">
+                    Dashboard
+                  </Button>
+                </Link>
+
                 <button
+                  type="button"
                   onClick={logout}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 border border-slate-200 transition"
+                  className="p-1.5 rounded-control border border-line text-ink/70 hover:text-ink hover:bg-concrete transition-colors"
                   title="Sign out"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign Out</span>
+                  <LogOut className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <Link
                   href="/login"
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition"
+                  className="text-sm font-medium text-ink/80 hover:text-ink px-3 py-2 transition-colors"
                 >
-                  Sign In
+                  Log in
                 </Link>
+                <Link href="/book">
+                  <Button variant="secondary" size="md">
+                    Book a technician
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile hamburger menu toggle */}
+          <div className="flex md:hidden items-center space-x-2">
+            {isAuthenticated && <NotificationBell />}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-control border border-line text-ink hover:bg-concrete transition-colors"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" strokeWidth={1.75} />
+              ) : (
+                <Menu className="w-5 h-5" strokeWidth={1.75} />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Slide-down Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-line bg-white px-4 pt-3 pb-6 space-y-3">
+          {pathname === '/' ? (
+            <div className="flex flex-col space-y-2 text-sm font-medium text-ink">
+              <a
+                href="#services"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-control hover:bg-concrete"
+              >
+                Services
+              </a>
+              <a
+                href="#how-it-works"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-control hover:bg-concrete"
+              >
+                How it works
+              </a>
+              <a
+                href="#for-technicians"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-control hover:bg-concrete"
+              >
+                For technicians
+              </a>
+              <a
+                href="#why-matching"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-control hover:bg-concrete"
+              >
+                Why matching matters
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-control hover:bg-concrete"
+              >
+                FAQ
+              </a>
+            </div>
+          ) : (
+            <div className="flex flex-col space-y-1 text-sm font-medium text-ink">
+              {role === 'customer' && (
+                <>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-control hover:bg-concrete"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/book"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-control hover:bg-concrete"
+                  >
+                    Book a service
+                  </Link>
+                  <Link
+                    href="/bookings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-control hover:bg-concrete"
+                  >
+                    My bookings
+                  </Link>
+                </>
+              )}
+              {role === 'technician' && (
+                <>
+                  <Link
+                    href="/technician/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-control hover:bg-concrete"
+                  >
+                    Dashboard & offers
+                  </Link>
+                  <Link
+                    href="/technician/inventory"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-control hover:bg-concrete"
+                  >
+                    Parts inventory
+                  </Link>
+                  <Link
+                    href="/technician/earnings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-control hover:bg-concrete"
+                  >
+                    Earnings
+                  </Link>
+                  <Link
+                    href="/technician/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-control hover:bg-concrete"
+                  >
+                    Profile & docs
+                  </Link>
+                </>
+              )}
+              {role === 'admin' && (
                 <Link
-                  href="/register"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition"
+                  href="/admin/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 px-3 rounded-control hover:bg-concrete"
                 >
-                  Create Account
+                  Admin dashboard
+                </Link>
+              )}
+            </div>
+          )}
+
+          <div className="pt-3 border-t border-line space-y-2">
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <div className="text-xs text-ink/70 px-3">
+                  Signed in as <span className="font-semibold text-ink">{user?.name}</span> ({getRoleBadgeLabel()})
+                </div>
+                <Link
+                  href={getDashboardHref()}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block w-full"
+                >
+                  <Button variant="secondary" size="md" fullWidth>
+                    Go to dashboard
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
+                  leftIcon={LogOut}
+                >
+                  Sign out
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Link href="/book" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                  <Button variant="secondary" size="md" fullWidth>
+                    Book a technician
+                  </Button>
+                </Link>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                  <Button variant="outline" size="md" fullWidth>
+                    Log in
+                  </Button>
                 </Link>
               </div>
             )}
           </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Clock, ExternalLink } from 'lucide-react';
+import { Bell, Clock } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
@@ -23,7 +23,7 @@ export default function NotificationBell() {
         setNotifications(res.data.notifications || []);
         setUnreadCount(res.data.unreadCount || 0);
       }
-    } catch (err) {
+    } catch {
       // Quiet fail on network/auth transitions
     } finally {
       setLoading(false);
@@ -50,7 +50,6 @@ export default function NotificationBell() {
     }
   }, [isAuthenticated, user?._id]);
 
-  // Click outside listener to close dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -94,42 +93,45 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
+        className="relative p-2 text-ink/70 hover:text-ink hover:bg-concrete rounded-control transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
         title="Notifications"
+        aria-label="Open notifications"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="w-5 h-5" strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-black text-white bg-red-600 rounded-full animate-pulse">
+          <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-ink bg-amber rounded-control">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-fade-in">
-          <div className="p-3.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-panel shadow-floating border border-line z-50 overflow-hidden">
+          <div className="p-3.5 bg-concrete border-b border-line flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700">Notifications</span>
+              <span className="text-xs font-semibold text-ink">Notifications</span>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-700">
+                <span className="px-1.5 py-0.5 rounded-control text-[11px] font-bold bg-amber text-ink">
                   {unreadCount} unread
                 </span>
               )}
             </div>
             {unreadCount > 0 && (
               <button
+                type="button"
                 onClick={handleMarkAllRead}
-                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 transition"
+                className="text-xs font-medium text-ink/80 hover:text-ink transition-colors"
               >
                 Mark all read
               </button>
             )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+          <div className="max-h-80 overflow-y-auto divide-y divide-line">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400">
+              <div className="p-8 text-center text-xs text-ink/60">
                 No notifications yet.
               </div>
             ) : (
@@ -139,20 +141,20 @@ export default function NotificationBell() {
                   <div
                     key={n._id}
                     onClick={() => handleMarkSingleRead(n._id)}
-                    className={`p-3.5 hover:bg-slate-50 cursor-pointer transition flex items-start space-x-3 ${
-                      isUnread ? 'bg-blue-50/40' : 'bg-white'
+                    className={`p-3.5 hover:bg-concrete/60 cursor-pointer transition-colors flex items-start space-x-3 ${
+                      isUnread ? 'bg-concrete/30' : 'bg-white'
                     }`}
                   >
                     <div
-                      className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${
-                        isUnread ? 'bg-blue-600' : 'bg-slate-300'
+                      className={`w-2 h-2 mt-1.5 rounded-control flex-shrink-0 ${
+                        isUnread ? 'bg-amber' : 'bg-line'
                       }`}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate">{n.title}</div>
-                      <div className="text-[11px] text-slate-600 mt-0.5 leading-snug">{n.body}</div>
-                      <div className="text-[10px] text-slate-400 mt-1 flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
+                      <div className="text-xs font-semibold text-ink truncate">{n.title}</div>
+                      <div className="text-xs text-ink/70 mt-0.5 leading-snug">{n.body}</div>
+                      <div className="text-[11px] text-ink/50 mt-1 flex items-center space-x-1 tabular-nums">
+                        <Clock className="w-3 h-3" strokeWidth={1.75} />
                         <span>{new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     </div>
