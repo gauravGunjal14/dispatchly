@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { DEFAULT_MAP_CENTER } from '@/lib/config';
+import { formatMoney } from '@/lib/format';
 import {
   Wrench,
   Package,
@@ -763,7 +764,7 @@ export default function TechnicianDashboardPage() {
             <div>
               <div className="font-bold text-slate-900 text-base">Earnings & Settlements</div>
               <div className="text-xs text-slate-500 mt-0.5">
-                ${profile?.totalEarnings?.toFixed(2) || '0.00'} earned
+                {formatMoney(profile?.totalEarnings || 0)} earned
               </div>
             </div>
           </div>

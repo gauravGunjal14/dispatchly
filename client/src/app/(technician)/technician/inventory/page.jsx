@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import { 
   Package, 
   Plus, 
@@ -316,7 +317,7 @@ export default function TechnicianInventoryPage() {
                             {availableQty}
                           </td>
                           <td className="py-3.5 px-4 text-right font-medium text-slate-700">
-                            ${item.unitCost?.toFixed(2)}
+                            {formatMoney(item.unitCost || 0)}
                           </td>
                           <td className="py-3.5 px-4 text-center">
                             {isLowStock ? (

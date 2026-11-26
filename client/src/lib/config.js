@@ -11,7 +11,7 @@ export const DEFAULT_MAP_CENTER = {
   city: 'Mumbai',
 };
 
-export const DEFAULT_CURRENCY = 'USD';
+export const DEFAULT_CURRENCY = 'INR';
 
 export const CURRENCY_LOCALES = {
   INR: 'en-IN',

@@ -281,3 +281,5 @@ If JWT access or refresh secrets are compromised:
    - Geospatial distance and ETA calculations utilize the OpenStreetMap OSRM routing engine. Calculations reflect actual road networks and standard travel speeds, but do not integrate live traffic telemetry unless upgraded to Google Maps Distance Matrix or TomTom Traffic API.
 4. **Compute Resource Limits:**
    - Ensure your InsForge account subscription tier has sufficient credits and memory allocation for the container service (512MB RAM minimum is recommended). Check the InsForge dashboard for compute utilization and bandwidth metrics.
+5. **Platform Fee Configuration (`platformFeePerTicket`):**
+   - `PlatformSettings.platformFeePerTicket` defaults to `50` INR as a **placeholder** pending the operations team's final fee decision. Adjust it anytime from `/admin/settings`.

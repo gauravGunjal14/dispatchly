@@ -69,11 +69,16 @@ function BookingWizard() {
           const fetchedServices = res.data.services || [];
           setServices(fetchedServices);
 
-          // If a category was supplied in search params, pre-select first matching service
-          const matched = fetchedServices.find(
-            (s) => s.category.toLowerCase() === selectedCategory.toLowerCase()
-          );
-          if (matched && !selectedService) {
+          // Pre-select the first fixed-price (or non-quotation) service matching the category
+          const matched =
+            fetchedServices.find(
+              (s) => s.category.toLowerCase() === selectedCategory.toLowerCase() && s.pricingType === 'fixed'
+            ) ||
+            fetchedServices.find(
+              (s) => s.category.toLowerCase() === selectedCategory.toLowerCase() && s.pricingType !== 'quotation'
+            ) ||
+            null;
+          if (!selectedService) {
             setSelectedService(matched);
           }
         }
@@ -218,7 +223,7 @@ function BookingWizard() {
                     ? 'bg-ink text-white border-ink'
                     : isCompleted
                     ? 'bg-concrete text-ink border-line'
-                    : 'bg-white text-ink/40 border-line'
+                    : 'bg-white text-ink/70 border-line'
                 }`}
               >
                 <div className="text-[11px] font-mono">
@@ -265,8 +270,11 @@ function BookingWizard() {
                       type="button"
                       onClick={() => {
                         setSelectedCategory(id);
-                        const matched = services.find((s) => s.category.toLowerCase() === id.toLowerCase());
-                        if (matched) setSelectedService(matched);
+                        const matched =
+                          services.find((s) => s.category.toLowerCase() === id.toLowerCase() && s.pricingType === 'fixed') ||
+                          services.find((s) => s.category.toLowerCase() === id.toLowerCase() && s.pricingType !== 'quotation') ||
+                          null;
+                        setSelectedService(matched);
                       }}
                       className={`p-3.5 rounded-control border text-left flex flex-col items-start gap-2 transition ${
                         selectedCategory.toLowerCase() === id.toLowerCase()
@@ -338,7 +346,7 @@ function BookingWizard() {
                             <span className="font-semibold text-ink">
                               {service.pricingType === 'fixed' && formatMoney(service.basePrice)}
                               {service.pricingType === 'range' && `${formatMoney(service.minPrice)} – ${formatMoney(service.maxPrice)}`}
-                              {service.pricingType === 'quotation' && 'Inspection quote'}
+                              {service.pricingType === 'quotation' && 'Quote after inspection'}
                             </span>
                           </div>
                         </div>
@@ -718,16 +726,16 @@ function BookingWizard() {
                 <span className="text-xs font-semibold text-ink/70">
                   Estimated price
                 </span>
-                <span className="text-[11px] font-bold px-1.5 py-0.2 rounded-control bg-white text-ink border border-line capitalize">
-                  {priority} response
+                <span className="text-[11px] font-bold px-1.5 py-0.2 rounded-control bg-white text-ink border border-line">
+                  {priority === 'urgent' ? 'Urgent response' : 'Normal response'}
                 </span>
               </div>
 
               <div className="text-xl sm:text-2xl font-headline font-bold text-ink tabular-nums">
                 {estimating ? (
                   <span className="text-sm font-normal text-ink/60">Calculating...</span>
-                ) : estimate?.quotationRequired ? (
-                  <span className="text-base text-ink">Inspection quote</span>
+                ) : estimate?.quotationRequired || selectedService?.pricingType === 'quotation' ? (
+                  <span className="text-base text-ink">Quote after inspection</span>
                 ) : estimate?.type === 'range' ? (
                   `${formatMoney(estimate.estimatedMin)} – ${formatMoney(estimate.estimatedMax)}`
                 ) : (
@@ -764,7 +772,7 @@ function BookingWizard() {
                 <span>Arrival deadline: about 2 hours</span>
               </div>
               <p className="text-xs text-ink/60 pl-6">
-                Guaranteed arrival window enforced across active fleet.
+                Target arrival time: about 2 hours.
               </p>
             </div>
 

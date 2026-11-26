@@ -128,10 +128,10 @@ describe('Phase 3 Unit & Integration Tests', () => {
   // 1. Pure Pricing Estimator Tests
   describe('1. Pricing Estimator Service (Pure function)', () => {
     const dummySettings = {
-      currency: 'USD',
+      currency: 'INR',
       pricingConfig: {
         urgentSurchargePercentage: 20,
-        deliveryPricePerKm: 1.5,
+        deliveryPricePerKm: 12,
       },
     };
 
@@ -180,21 +180,22 @@ describe('Phase 3 Unit & Integration Tests', () => {
     });
 
     it('should calculate distance fee for delivery services', () => {
-      const coordSF1 = [-122.4194, 37.7749]; // SF downtown
-      const coordSF2 = [-122.3994, 37.7849]; // approx 2 km away
-      const dist = calculateHaversineDistanceKm(coordSF1, coordSF2);
+      const coordMumbai1 = [72.8479, 19.1197]; // Andheri
+      const coordMumbai2 = [72.8362, 19.0596]; // Bandra
+      const dist = calculateHaversineDistanceKm(coordMumbai1, coordMumbai2);
       expect(dist).toBeGreaterThan(1);
-      expect(dist).toBeLessThan(5);
+      expect(dist).toBeLessThan(15);
 
       const estimate = calculateEstimate({
-        service: { pricingType: 'fixed', basePrice: 40, category: 'delivery' },
+        service: { pricingType: 'fixed', basePrice: 150, category: 'delivery' },
         priority: 'normal',
-        pickupLocation: { coordinates: coordSF1 },
-        dropoffLocation: { coordinates: coordSF2 },
+        pickupLocation: { coordinates: coordMumbai1 },
+        dropoffLocation: { coordinates: coordMumbai2 },
         platformSettings: dummySettings,
       });
       expect(estimate.distanceKm).toBe(dist);
-      expect(estimate.baseAmount).toBeCloseTo(40 + dist * 1.5, 1);
+      expect(estimate.currency).toBe('INR');
+      expect(estimate.baseAmount).toBeCloseTo(150 + dist * 12, 1);
     });
   });
 

@@ -9,22 +9,23 @@ describe('Phase 6 Test Suite: Quotations, Completion, Inventory, Payments & Rati
   describe('1. Mock Payment Gateway', () => {
     it('should successfully capture payment with standard test params', async () => {
       const result = await mockPaymentGateway.capture({
-        amount: 85.0,
-        currency: 'USD',
+        amount: 850.0,
+        currency: 'INR',
         paymentMethod: { cardNumber: '4000000000000001' },
         idempotencyKey: 'idemp_test_01',
       });
 
       expect(result.success).toBe(true);
       expect(result.status).toBe('captured');
-      expect(result.amount).toBe(85.0);
+      expect(result.amount).toBe(850.0);
+      expect(result.currency).toBe('INR');
       expect(result.transactionId).toMatch(/^txn_mock_/);
     });
 
     it('should decline payment when simulateFailure is true', async () => {
       const result = await mockPaymentGateway.capture({
-        amount: 85.0,
-        currency: 'USD',
+        amount: 850.0,
+        currency: 'INR',
         simulateFailure: true,
       });
 

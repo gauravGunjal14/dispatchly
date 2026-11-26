@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import { 
   DollarSign, 
   ArrowLeft, 
@@ -70,7 +71,7 @@ export default function TechnicianEarningsPage() {
             <DollarSign className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-emerald-700">
-            ${summary.totalEarnings.toFixed(2)}
+            {formatMoney(summary.totalEarnings || 0)}
           </div>
           <p className="text-[11px] text-slate-400">Available & credited balance</p>
         </div>
@@ -81,9 +82,9 @@ export default function TechnicianEarningsPage() {
             <Receipt className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-black text-slate-900">
-            ${summary.totalFeesDeducted.toFixed(2)}
+            {formatMoney(summary.totalFeesDeducted || 0)}
           </div>
-          <p className="text-[11px] text-slate-400">Fixed $1.50 per verified ticket</p>
+          <p className="text-[11px] text-slate-400">Platform fee deducted per verified ticket</p>
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-1">
@@ -145,13 +146,13 @@ export default function TechnicianEarningsPage() {
                         {p.booking?.category || 'Service'}
                       </td>
                       <td className="py-3 px-4 text-right font-semibold text-slate-600">
-                        ${gross.toFixed(2)}
+                        {formatMoney(gross || 0, p.currency)}
                       </td>
                       <td className="py-3 px-4 text-right font-semibold text-rose-600">
-                        -${(p.feeDeducted || 0).toFixed(2)}
+                        -{formatMoney(p.feeDeducted || 0, p.currency)}
                       </td>
                       <td className="py-3 px-4 text-right font-black text-emerald-700">
-                        ${(p.amount || 0).toFixed(2)}
+                        {formatMoney(p.amount || 0, p.currency)}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">

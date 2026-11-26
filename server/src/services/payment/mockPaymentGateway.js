@@ -13,7 +13,7 @@ class MockPaymentGateway extends PaymentGateway {
     this.transactions = new Map();
   }
 
-  async authorize({ amount, currency = 'USD', paymentMethod = {}, idempotencyKey }) {
+  async authorize({ amount, currency = 'INR', paymentMethod = {}, idempotencyKey }) {
     if (this._shouldFail({ amount, paymentMethod })) {
       return {
         success: false,
@@ -39,7 +39,7 @@ class MockPaymentGateway extends PaymentGateway {
     };
   }
 
-  async capture({ amount, currency = 'USD', paymentMethod = {}, idempotencyKey, simulateFailure }) {
+  async capture({ amount, currency = 'INR', paymentMethod = {}, idempotencyKey, simulateFailure }) {
     if (simulateFailure || this._shouldFail({ amount, paymentMethod })) {
       return {
         success: false,

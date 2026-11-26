@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { apiClient, getApiBaseUrl } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import { 
   DollarSign, 
   RotateCcw, 
@@ -60,7 +61,7 @@ export default function AdminPaymentsPage() {
       });
 
       if (res.success) {
-        setMessage({ text: `Payment of $${payment.amount} refunded successfully.`, type: 'success' });
+        setMessage({ text: `Payment of ${formatMoney(payment.amount, payment.currency)} refunded successfully.`, type: 'success' });
         await fetchLedger();
       }
     } catch (err) {
@@ -131,7 +132,7 @@ export default function AdminPaymentsPage() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Volume</div>
           <div className="text-2xl font-black text-slate-900 mt-1">
-            ${(summary.totalVolume || 0).toFixed(2)}
+            {formatMoney(summary.totalVolume || 0)}
           </div>
           <div className="text-xs text-slate-500 mt-1">Total customer job charges</div>
         </div>
@@ -139,9 +140,9 @@ export default function AdminPaymentsPage() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Platform Fees Collected</div>
           <div className="text-2xl font-black text-purple-600 mt-1">
-            ${(summary.platformFeesCollected || 0).toFixed(2)}
+            {formatMoney(summary.platformFeesCollected || 0)}
           </div>
-          <div className="text-xs text-slate-500 mt-1">$1.50 per completed ticket</div>
+          <div className="text-xs text-slate-500 mt-1">Platform fee per completed ticket</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200">
@@ -218,7 +219,7 @@ export default function AdminPaymentsPage() {
                       <div className="text-[11px] text-slate-400">{p.technician?.user?.email}</div>
                     </td>
                     <td className="py-3 px-4 font-bold text-slate-900 text-sm">
-                      ${p.amount?.toFixed(2)} <span className="text-xs text-slate-400 font-normal">USD</span>
+                      {formatMoney(p.amount || 0, p.currency)}
                     </td>
                     <td className="py-3 px-4 text-slate-500">
                       {new Date(p.createdAt).toLocaleString()}

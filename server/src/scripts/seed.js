@@ -25,9 +25,11 @@ const Payout = require('../models/Payout');
 const Review = require('../models/Review');
 const Dispute = require('../models/Dispute');
 const Notification = require('../models/Notification');
+const { validateSeedPasswords } = require('./resetDemo');
 
 const seedData = async () => {
   try {
+    const seedPasswords = validateSeedPasswords();
     console.log('[Seed] Connecting to MongoDB...');
     await connectDB();
 
@@ -54,15 +56,15 @@ const seedData = async () => {
     const adminUser = await User.create({
       name: 'Operations Dispatcher',
       email: 'admin@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.adminPassword,
       role: 'admin',
       phone: '+1 415-555-0100',
     });
 
     console.log('[Seed] Creating Platform Settings...');
     const settings = await PlatformSettings.create({
-      platformFeePerTicket: 1.5,
-      currency: 'USD',
+      platformFeePerTicket: 50,
+      currency: 'INR',
       offerExpirySeconds: 60,
       dispatchWeights: {
         sla: 30,
@@ -88,7 +90,7 @@ const seedData = async () => {
       },
       pricingConfig: {
         urgentSurchargePercentage: 20,
-        deliveryPricePerKm: 1.5,
+        deliveryPricePerKm: 12,
       },
     });
 
@@ -97,28 +99,28 @@ const seedData = async () => {
       {
         name: 'Alice Customer',
         email: 'customer@dispatchly.com',
-        passwordHash: 'password123',
+        passwordHash: seedPasswords.customerPassword,
         role: 'customer',
         phone: '+1 415-555-0101',
       },
       {
         name: 'Bob Customer',
         email: 'bob.customer@dispatchly.com',
-        passwordHash: 'password123',
+        passwordHash: seedPasswords.customerPassword,
         role: 'customer',
         phone: '+1 415-555-0102',
       },
       {
         name: 'Sarah Jenkins',
         email: 'sarah.customer@dispatchly.com',
-        passwordHash: 'password123',
+        passwordHash: seedPasswords.customerPassword,
         role: 'customer',
         phone: '+1 415-555-0103',
       },
       {
         name: 'Mike Vance',
         email: 'mike.customer@dispatchly.com',
-        passwordHash: 'password123',
+        passwordHash: seedPasswords.customerPassword,
         role: 'customer',
         phone: '+1 415-555-0104',
       },
@@ -129,7 +131,7 @@ const seedData = async () => {
     const plumberUser = await User.create({
       name: 'David Miller',
       email: 'plumber@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0201',
     });
@@ -141,12 +143,12 @@ const seedData = async () => {
       qualifications: ['California Master Plumber C-36', 'Backflow Prevention Certified'],
       experienceYears: 8,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.4194, 37.7749] }, // SF Downtown
+        center: { type: 'Point', coordinates: [72.8777, 19.0760] }, // SF Downtown
         radiusKm: 30,
       },
       currentLocation: {
         type: 'Point',
-        coordinates: [-122.418, 37.7755],
+        coordinates: [72.8777, 19.0760],
         updatedAt: new Date(),
       },
       vehicleType: 'van',
@@ -164,7 +166,7 @@ const seedData = async () => {
     const pendingPlumberUser = await User.create({
       name: 'Sam Taylor',
       email: 'sam.plumber@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0202',
     });
@@ -176,12 +178,12 @@ const seedData = async () => {
       qualifications: ['Apprentice Plumber Certificate'],
       experienceYears: 2,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.2711, 37.8044] }, // Oakland
+        center: { type: 'Point', coordinates: [72.9781, 19.2183] }, // Thane
         radiusKm: 25,
       },
       currentLocation: {
         type: 'Point',
-        coordinates: [-122.2711, 37.8044],
+        coordinates: [72.9781, 19.2183],
         updatedAt: new Date(),
       },
       vehicleType: 'pickup',
@@ -196,7 +198,7 @@ const seedData = async () => {
     const hvacUser = await User.create({
       name: 'Carlos Mendez',
       email: 'hvac@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0301',
     });
@@ -205,15 +207,15 @@ const seedData = async () => {
       user: hvacUser._id,
       serviceCategories: ['hvac'],
       skills: ['ac_diagnostics', 'compressor_repair', 'refrigerant_recharge', 'thermostat_wiring'],
-      qualifications: ['EPA 608 Universal Certification', 'NATE Certified Heat Pump & AC'],
+      qualifications: ['EPA 608 Universal Certification', 'Certified Split AC & HVAC'],
       experienceYears: 6,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.4183, 37.7599] }, // SF Mission
+        center: { type: 'Point', coordinates: [72.8777, 19.0760] }, // SF Mission
         radiusKm: 35,
       },
       currentLocation: {
         type: 'Point',
-        coordinates: [-122.417, 37.7605],
+        coordinates: [72.8777, 19.0760],
         updatedAt: new Date(),
       },
       vehicleType: 'van',
@@ -231,7 +233,7 @@ const seedData = async () => {
     const rejectedHvacUser = await User.create({
       name: 'Elena Rostova',
       email: 'elena.hvac@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0302',
     });
@@ -243,7 +245,7 @@ const seedData = async () => {
       qualifications: ['HVAC Level 1 Certificate'],
       experienceYears: 1,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.4312, 37.7694] },
+        center: { type: 'Point', coordinates: [72.8777, 19.0760] },
         radiusKm: 15,
       },
       verificationStatus: 'rejected',
@@ -259,7 +261,7 @@ const seedData = async () => {
     const courierUser = await User.create({
       name: 'Marcus Ross',
       email: 'courier@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0401',
     });
@@ -271,12 +273,12 @@ const seedData = async () => {
       qualifications: ['Commercial Driver License (Class B)', 'DOT Medical Card'],
       experienceYears: 5,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.4014, 37.7925] }, // SF Financial Dist
+        center: { type: 'Point', coordinates: [72.8777, 19.0760] }, // SF Financial Dist
         radiusKm: 45,
       },
       currentLocation: {
         type: 'Point',
-        coordinates: [-122.402, 37.793],
+        coordinates: [72.8777, 19.0760],
         updatedAt: new Date(),
       },
       vehicleType: 'van',
@@ -294,7 +296,7 @@ const seedData = async () => {
     const pendingCourierUser = await User.create({
       name: 'Jordan Lee',
       email: 'jordan.courier@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0402',
     });
@@ -306,7 +308,7 @@ const seedData = async () => {
       qualifications: ['Motorcycle Endorsement (M1)'],
       experienceYears: 2,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.4111, 37.6547] }, // South SF
+        center: { type: 'Point', coordinates: [72.8362, 19.0596] }, // Bandra
         radiusKm: 20,
       },
       vehicleType: 'motorcycle',
@@ -321,7 +323,7 @@ const seedData = async () => {
     const plumberNoStockUser = await User.create({
       name: 'Lisa Chen',
       email: 'lisa.plumber@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0205',
     });
@@ -333,12 +335,12 @@ const seedData = async () => {
       qualifications: ['Journeyman Plumber'],
       experienceYears: 4,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.4862, 37.7601] }, // SF Sunset
+        center: { type: 'Point', coordinates: [72.8777, 19.0760] }, // SF Sunset
         radiusKm: 25,
       },
       currentLocation: {
         type: 'Point',
-        coordinates: [-122.485, 37.761],
+        coordinates: [72.8777, 19.0760],
         updatedAt: new Date(),
       },
       vehicleType: 'van',
@@ -355,7 +357,7 @@ const seedData = async () => {
     const plumberOaklandUser = await User.create({
       name: 'Kevin Park',
       email: 'kevin.plumber@dispatchly.com',
-      passwordHash: 'password123',
+      passwordHash: seedPasswords.techPassword,
       role: 'technician',
       phone: '+1 415-555-0206',
     });
@@ -367,12 +369,12 @@ const seedData = async () => {
       qualifications: ['Licensed Plumber'],
       experienceYears: 5,
       serviceArea: {
-        center: { type: 'Point', coordinates: [-122.2711, 37.8044] }, // Oakland Center
-        radiusKm: 5, // Small radius, cannot service SF
+        center: { type: 'Point', coordinates: [72.9781, 19.2183] }, // Thane Center
+        radiusKm: 5, // Small radius, cannot service South Mumbai
       },
       currentLocation: {
         type: 'Point',
-        coordinates: [-122.2711, 37.8044],
+        coordinates: [72.9781, 19.2183],
         updatedAt: new Date(),
       },
       vehicleType: 'van',
@@ -613,7 +615,7 @@ const seedData = async () => {
       // HVAC
       {
         category: 'hvac',
-        name: 'AC Diagnostic & Filter Tune-Up',
+        name: 'AC Seasonal Service',
         code: 'HVAC_AC_TUNEUP',
         description: 'Comprehensive cooling diagnostic, airflow measurement, and electrical inspection.',
         pricingType: 'fixed',
@@ -659,9 +661,9 @@ const seedData = async () => {
       },
       {
         category: 'hvac',
-        name: 'Central Heat Pump System Replacement',
-        code: 'HVAC_CUSTOM_FURNACE',
-        description: 'Full heat pump, air handler, and condenser unit replacement consultation.',
+        name: 'Split AC Installation',
+        code: 'HVAC_SPLIT_AC_INSTALL',
+        description: 'Indoor and outdoor split AC unit mounting, piping, and testing consultation.',
         pricingType: 'quotation',
         basePrice: 0,
         estimatedDurationMin: 240,
@@ -752,8 +754,8 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0101',
       location: {
         type: 'Point',
-        coordinates: [-122.4194, 37.7749],
-        address: '750 Market Street, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Andheri West, Link Road, Mumbai',
       },
       requirementSnapshot: leakService.requirements,
       pricing: {
@@ -761,7 +763,7 @@ const seedData = async () => {
         estimatedMin: 85,
         estimatedMax: 160,
         baseAmount: 110,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now + 30 * 60000),
@@ -791,17 +793,17 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0101',
       location: {
         type: 'Point',
-        coordinates: [-122.4014, 37.7925],
-        address: '50 California Street, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Bandra Kurla Complex, Mumbai',
       },
       pickupLocation: {
         type: 'Point',
-        coordinates: [-122.4194, 37.7749],
-        address: '750 Market St, SF',
+        coordinates: [72.8777, 19.0760],
+        address: 'Andheri West, Mumbai',
       },
       dropoffLocation: {
         type: 'Point',
-        coordinates: [-122.4014, 37.7925],
+        coordinates: [72.8777, 19.0760],
         address: '50 California St, SF',
       },
       packageWeightKg: 8,
@@ -812,7 +814,7 @@ const seedData = async () => {
         baseAmount: 69.5, // 55 base + distance fee + urgent
         distanceKm: 2.1,
         urgentSurcharge: 11.0,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now + 5 * 60000),
@@ -840,8 +842,8 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0102',
       location: {
         type: 'Point',
-        coordinates: [-122.4089, 37.7836],
-        address: '300 4th Street, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Dadar West, Mumbai',
       },
       requirementSnapshot: hvacService.requirements,
       pricing: {
@@ -850,7 +852,7 @@ const seedData = async () => {
         estimatedMax: 336,
         baseAmount: 234, // includes 20% urgent surcharge
         urgentSurcharge: 39,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now + 15 * 60000),
@@ -916,14 +918,14 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0103',
       location: {
         type: 'Point',
-        coordinates: [-122.4284, 37.7597],
-        address: '3800 17th Street, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Powai, Hiranandani Gardens, Mumbai',
       },
       requirementSnapshot: drainService.requirements,
       pricing: {
         type: 'fixed',
         baseAmount: 95.0,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now - 24 * 3600000),
@@ -952,14 +954,14 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0103',
       location: {
         type: 'Point',
-        coordinates: [-122.435, 37.765],
-        address: '500 Castro St, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Lower Parel, Mumbai',
       },
       requirementSnapshot: docService.requirements,
       pricing: {
         type: 'fixed',
         baseAmount: 35.0,
-        currency: 'USD',
+        currency: 'INR',
       },
       status: 'cancelled',
       cancellationReason: 'Party signed electronically via DocuSign.',
@@ -981,14 +983,14 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0101',
       location: {
         type: 'Point',
-        coordinates: [-122.4194, 37.7749], // SF City Hall
-        address: '1 Dr Carlton B Goodlett Pl, San Francisco, CA',
+        coordinates: [72.8777, 19.0760], // SF City Hall
+        address: 'Nariman Point, Mumbai',
       },
       requirementSnapshot: leakService.requirements,
       pricing: {
         type: 'fixed',
         baseAmount: 120.0,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now + 20 * 60000),
@@ -1024,14 +1026,14 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0102',
       location: {
         type: 'Point',
-        coordinates: [-122.4089, 37.7836],
-        address: '845 Market St, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Worli Sea Face, Mumbai',
       },
       requirementSnapshot: acGasService.requirements,
       pricing: {
         type: 'quotation',
         baseAmount: 180.0,
-        currency: 'USD',
+        currency: 'INR',
         quotationRequired: false,
       },
       sla: {
@@ -1082,14 +1084,14 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0101',
       location: {
         type: 'Point',
-        coordinates: [-122.4201, 37.7654],
-        address: '2200 Mission St, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Thane West, Ghodbunder Road',
       },
       requirementSnapshot: drainService.requirements,
       pricing: {
         type: 'fixed',
         baseAmount: 110.0,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now - 120 * 60000),
@@ -1132,14 +1134,14 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0102',
       location: {
         type: 'Point',
-        coordinates: [-122.44, 37.77],
-        address: '1500 Haight St, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Chembur East, Mumbai',
       },
       requirementSnapshot: leakService.requirements,
       pricing: {
         type: 'fixed',
         baseAmount: 140.0,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now - 6 * 3600000),
@@ -1180,7 +1182,7 @@ const seedData = async () => {
       customer: custBob._id,
       technician: plumberProfile._id,
       amount: 140.0,
-      currency: 'USD',
+      currency: 'INR',
       status: 'captured',
       gatewayRef: 'txn_mock_seed_1009',
       idempotencyKey: 'pay_idemp_1009',
@@ -1190,7 +1192,7 @@ const seedData = async () => {
     await PlatformFee.create({
       booking: paidBooking._id,
       amount: 1.5,
-      currency: 'USD',
+      currency: 'INR',
       feePayer: 'technician',
       capturedAt: new Date(now - 3.5 * 3600000),
     });
@@ -1200,7 +1202,7 @@ const seedData = async () => {
       booking: paidBooking._id,
       amount: 138.5,
       feeDeducted: 1.5,
-      currency: 'USD',
+      currency: 'INR',
       status: 'paid',
       paidAt: new Date(now - 3.5 * 3600000),
     });
@@ -1231,14 +1233,14 @@ const seedData = async () => {
       contactPhone: '+1 415-555-0103',
       location: {
         type: 'Point',
-        coordinates: [-122.414, 37.788],
-        address: '400 Post St, San Francisco, CA',
+        coordinates: [72.8777, 19.0760],
+        address: 'Colaba Causeway, Mumbai',
       },
       requirementSnapshot: parcelService.requirements,
       pricing: {
         type: 'fixed',
         baseAmount: 45.0,
-        currency: 'USD',
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(now - 10 * 3600000),
@@ -1279,7 +1281,7 @@ const seedData = async () => {
     console.log('--------------------------------------------------');
     console.log('Seed Summary:');
     console.log('Services:    12 services across Plumbing, HVAC, Delivery');
-    console.log('Settings:    Platform settings initialized ($1.50 fee, 60s timeout, 100% weights)');
+    console.log('Settings:    Platform settings initialized (50 INR fee (placeholder), 60s timeout, 100% weights)');
     console.log('Bookings:    10 sample tickets seeded across all lifecycle states:');
     console.log('             - Searching, Assigned, En Route (Live GPS), In Progress (Quotation),');
     console.log('             - Completed (Awaiting Verification), Completed & Paid (Settled + 5-Star Review),');

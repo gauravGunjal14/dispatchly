@@ -14,7 +14,7 @@ const categorySlaSchema = z.object({
 const updateSettingsSchema = z
   .object({
     platformFeePerTicket: z.number().min(0).optional(),
-    currency: z.string().min(3).max(3).optional(),
+    currency: z.enum(['INR', 'USD', 'EUR', 'GBP']).optional(),
     offerExpirySeconds: z.number().min(15).max(300).optional(),
     maxOfferAttempts: z.number().min(1).max(20).optional(),
     maxCandidateRadiusKm: z.number().min(1).max(200).optional(),

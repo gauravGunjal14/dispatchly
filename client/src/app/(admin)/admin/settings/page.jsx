@@ -34,11 +34,11 @@ export default function AdminSettingsPage() {
   });
 
   // General & Fees
-  const [platformFee, setPlatformFee] = useState(1.5);
+  const [platformFee, setPlatformFee] = useState(50);
   const [offerExpirySeconds, setOfferExpirySeconds] = useState(60);
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('INR');
   const [urgentSurchargePct, setUrgentSurchargePct] = useState(20);
-  const [deliveryPerKm, setDeliveryPerKm] = useState(1.5);
+  const [deliveryPerKm, setDeliveryPerKm] = useState(12);
 
   // Operational & Sweepers
   const [atRiskThresholdPercent, setAtRiskThresholdPercent] = useState(80);
@@ -323,7 +323,7 @@ export default function AdminSettingsPage() {
               className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300"
             />
             <span className="text-[11px] text-slate-400 mt-1 block">
-              Configurable platform fee (default $1.50) collected once per completed ticket.
+              Configurable platform fee collected once per completed ticket (placeholder pending operations decision).
             </span>
           </div>
 
@@ -459,7 +459,7 @@ export default function AdminSettingsPage() {
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
-              PRD Item #1: Who absorbs the $1.50 ticket fee?
+              PRD Item #1: Who absorbs the platform ticket fee?
             </p>
             <select
               value={feePayer}
@@ -468,7 +468,7 @@ export default function AdminSettingsPage() {
             >
               <option value="technician">Deduct from Technician payout (Current Default)</option>
               <option value="customer">Add surcharge to Customer booking total</option>
-              <option value="split">Split 50/50 ($0.75 technician / $0.75 customer)</option>
+              <option value="split">Split 50/50 (technician / customer)</option>
             </select>
           </div>
 
@@ -491,7 +491,7 @@ export default function AdminSettingsPage() {
               className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-medium"
             >
               <option value="free_before_start">Free cancellation before work starts (Current Default)</option>
-              <option value="fee_after_quote_reject">Flat $15 dispatch fee if quote rejected after arrival</option>
+              <option value="fee_after_quote_reject">Flat dispatch fee if quote rejected after arrival</option>
             </select>
           </div>
 

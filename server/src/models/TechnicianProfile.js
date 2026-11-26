@@ -11,7 +11,7 @@ const pointSchema = new mongoose.Schema(
     coordinates: {
       type: [Number], // [longitude, latitude]
       required: true,
-      default: [-122.4194, 37.7749], // Default San Francisco [lng, lat]
+      default: [72.8777, 19.0760], // Default Mumbai [lng, lat]
     },
     updatedAt: {
       type: Date,
@@ -31,7 +31,7 @@ const serviceAreaSchema = new mongoose.Schema(
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
-        default: [-122.4194, 37.7749],
+        default: [72.8777, 19.0760],
       },
     },
     radiusKm: {

@@ -22,13 +22,14 @@ const platformSettingsSchema = new mongoose.Schema(
     platformFeePerTicket: {
       type: Number,
       required: true,
-      default: 1.5,
+      // PLACEHOLDER: default 50 INR pending operations team's final fee decision
+      default: 50,
       min: 0,
     },
     currency: {
       type: String,
       required: true,
-      default: 'USD',
+      default: 'INR',
       uppercase: true,
       trim: true,
     },
@@ -108,7 +109,7 @@ const platformSettingsSchema = new mongoose.Schema(
     },
     pricingConfig: {
       urgentSurchargePercentage: { type: Number, default: 20, min: 0, max: 100 },
-      deliveryPricePerKm: { type: Number, default: 1.5, min: 0 },
+      deliveryPricePerKm: { type: Number, default: 12, min: 0 },
     },
     slaMonitoring: {
       atRiskThresholdPercent: { type: Number, default: 80, min: 50, max: 95 },

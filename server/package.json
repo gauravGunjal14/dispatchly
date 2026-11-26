@@ -11,6 +11,7 @@
     "test:all": "jest --detectOpenHandles --runInBand --forceExit",
     "seed": "node src/scripts/seed.js",
     "seed:reset": "node src/scripts/seed.js",
+    "reset:demo": "node src/scripts/resetDemo.js",
     "create:admin": "node src/scripts/createAdmin.js",
     "benchmark": "node src/scripts/benchmarkLatency.js",
     "sim:tech": "node src/scripts/simulateTechMovement.js",

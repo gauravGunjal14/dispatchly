@@ -132,7 +132,7 @@ const bookingSchema = new mongoose.Schema(
       baseAmount: { type: Number, default: 0 },
       distanceKm: { type: Number, default: 0 },
       urgentSurcharge: { type: Number, default: 0 },
-      currency: { type: String, default: 'USD' },
+      currency: { type: String, default: 'INR' },
       quotationRequired: { type: Boolean, default: false },
     },
     sla: {

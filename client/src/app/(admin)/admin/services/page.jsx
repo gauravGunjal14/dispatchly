@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import { 
   Wrench, 
   Plus, 
@@ -250,9 +251,9 @@ export default function AdminServicesPage() {
                       {s.pricingType}
                     </td>
                     <td className="py-3.5 px-4 font-black text-slate-900">
-                      {s.pricingType === 'fixed' && `$${s.basePrice?.toFixed(2)}`}
-                      {s.pricingType === 'range' && `$${s.minPrice} - $${s.maxPrice}`}
-                      {s.pricingType === 'quotation' && 'Quotation'}
+                      {s.pricingType === 'fixed' && formatMoney(s.basePrice || 0)}
+                      {s.pricingType === 'range' && `${formatMoney(s.minPrice || 0)} - ${formatMoney(s.maxPrice || 0)}`}
+                      {s.pricingType === 'quotation' && 'Quote after inspection'}
                     </td>
                     <td className="py-3.5 px-4 text-slate-600 text-xs">
                       {s.estimatedDurationMin} mins

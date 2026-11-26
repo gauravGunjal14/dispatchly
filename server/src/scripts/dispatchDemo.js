@@ -73,8 +73,8 @@ const runDemo = async () => {
       contactPhone: demoCustomer.phone,
       location: {
         type: 'Point',
-        coordinates: [-122.4194, 37.7749], // SF Civic Center
-        address: '100 Larkin Street, San Francisco, CA',
+        coordinates: [72.8479, 19.1197], // Andheri, Mumbai
+        address: 'Andheri West, Link Road, Mumbai',
       },
       requirementSnapshot: {
         requiredSkills: ['pipe_repair'],
@@ -82,8 +82,8 @@ const runDemo = async () => {
       },
       pricing: {
         type: 'fixed',
-        baseAmount: 145.0,
-        currency: 'USD',
+        baseAmount: 1200.0,
+        currency: 'INR',
       },
       sla: {
         responseDeadline: new Date(Date.now() + 10 * 60000),

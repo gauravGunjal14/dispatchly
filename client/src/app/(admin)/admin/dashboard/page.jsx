@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { formatMoney } from '@/lib/format';
 import {
   ShieldCheck,
   MapPin,
@@ -326,11 +327,11 @@ export default function AdminDashboardExecutive() {
             {renderTrendBadge(trends.platformRevenue)}
           </div>
           <div className="text-3xl font-black text-purple-600">
-            ${(cur.platformRevenue || 0).toFixed(2)}
+            {formatMoney(cur.platformRevenue || 0)}
           </div>
           <div className="flex justify-between text-xs text-slate-500 pt-1">
-            <span>{cur.platformFeeCount || 0} tickets @ $1.50</span>
-            <span>Gross: ${(cur.grossVolume || 0).toFixed(0)}</span>
+            <span>{cur.platformFeeCount || 0} tickets</span>
+            <span>Gross: {formatMoney(cur.grossVolume || 0)}</span>
           </div>
         </div>
 
@@ -729,7 +730,7 @@ export default function AdminDashboardExecutive() {
                       {t.completedJobs}
                     </td>
                     <td className="py-3 px-4 text-right font-black text-slate-900">
-                      ${t.earnings?.toFixed(2)}
+                      {formatMoney(t.earnings || 0)}
                     </td>
                   </tr>
                 ))

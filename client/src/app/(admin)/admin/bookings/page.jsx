@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import { 
   Clock, 
   MapPin, 
@@ -168,7 +169,7 @@ export default function AdminBookingsPage() {
                       )}
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">
-                      ${b.pricing?.baseAmount?.toFixed(2) || '0.00'}
+                      {formatMoney(b.pricing?.baseAmount || 0, b.pricing?.currency)}
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <button
@@ -219,7 +220,7 @@ export default function AdminBookingsPage() {
 
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="p-3 bg-slate-50 rounded-xl border">
-                  <span className="text-slate-400 font-bold block uppercase text-[10px]">Guaranteed Arrival SLA</span>
+                  <span className="text-slate-400 font-bold block uppercase text-[10px]">Target Arrival SLA</span>
                   <span className="font-bold text-blue-700 text-sm">
                     {selectedBooking.sla?.arrivalDeadline ? new Date(selectedBooking.sla.arrivalDeadline).toLocaleTimeString() : 'N/A'}
                   </span>
@@ -228,7 +229,7 @@ export default function AdminBookingsPage() {
                 <div className="p-3 bg-slate-50 rounded-xl border">
                   <span className="text-slate-400 font-bold block uppercase text-[10px]">Estimated Price</span>
                   <span className="font-black text-slate-900 text-sm">
-                    ${selectedBooking.pricing?.baseAmount?.toFixed(2) || '0.00'}
+                    {formatMoney(selectedBooking.pricing?.baseAmount || 0, selectedBooking.pricing?.currency)}
                   </span>
                 </div>
               </div>

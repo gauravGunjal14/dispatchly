@@ -19,7 +19,7 @@ class PaymentService {
     bookingId,
     customerId,
     amount,
-    currency = 'USD',
+    currency = 'INR',
     paymentMethod = {},
     idempotencyKey,
     simulateFailure = false,
@@ -65,7 +65,7 @@ class PaymentService {
     }
 
     // Load platform settings for fee calculation
-    let settings = { platformFeePerTicket: 1.5, feePayer: 'technician' };
+    let settings = { platformFeePerTicket: 50, feePayer: 'technician' };
     try {
       if (typeof PlatformSettings.getSettings === 'function') {
         settings = await PlatformSettings.getSettings();
@@ -74,7 +74,7 @@ class PaymentService {
       // Use fallback defaults
     }
 
-    const feeAmount = settings.platformFeePerTicket != null ? settings.platformFeePerTicket : 1.5;
+    const feeAmount = settings.platformFeePerTicket != null ? settings.platformFeePerTicket : 50;
     const feePayer = settings.feePayer || 'technician';
 
     // Call payment gateway

@@ -357,7 +357,7 @@ describe('Dispatchly End-to-End (E2E) Marketplace Verification Suite', () => {
       // Verify platform fee record was created atomically
       const fee = await PlatformFee.findOne({ booking: bookingId });
       expect(fee).toBeDefined();
-      expect(fee.amount).toBe(1.5);
+      expect(fee.amount).toBe(50);
     });
 
     it('Step 1.6: Customer submits review and rating updates technician stats', async () => {
@@ -575,8 +575,8 @@ describe('Dispatchly End-to-End (E2E) Marketplace Verification Suite', () => {
         booking: booking._id,
         customer: customerA._id,
         technician: techPlumberProfile._id,
-        amount: 95.0,
-        currency: 'USD',
+        amount: 950.0,
+        currency: 'INR',
         status: 'captured',
         paymentMethod: 'card_demo',
         idempotencyKey: genKey('flow6_pay'),

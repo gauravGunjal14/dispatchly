@@ -41,7 +41,7 @@ const calculateEstimate = ({
     throw new Error('Service is required for price estimation');
   }
 
-  const currency = platformSettings?.currency || 'USD';
+  const currency = platformSettings?.currency || 'INR';
   const pricingType = service.pricingType || 'fixed';
 
   // Quotation-based service (complex custom jobs)
@@ -82,7 +82,7 @@ const calculateEstimate = ({
 
   if (isDelivery && pickupLocation?.coordinates && dropoffLocation?.coordinates) {
     distanceKm = calculateHaversineDistanceKm(pickupLocation.coordinates, dropoffLocation.coordinates);
-    const ratePerKm = platformSettings?.pricingConfig?.deliveryPricePerKm || 1.5;
+    const ratePerKm = platformSettings?.pricingConfig?.deliveryPricePerKm || 12;
     distanceFee = Math.round(distanceKm * ratePerKm * 100) / 100;
 
     min += distanceFee;

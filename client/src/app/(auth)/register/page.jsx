@@ -208,7 +208,7 @@ export default function RegisterPage() {
                 autoComplete="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 555-0199"
+                placeholder="+91 0000000000"
                 className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
               />
             </div>
