@@ -2,12 +2,13 @@
 
 import React, { useEffect, useRef } from 'react';
 import { MapPin, Navigation } from 'lucide-react';
+import { DEFAULT_MAP_CENTER } from '@/lib/config';
 
 export default function LocationPickerMap({
   mode = 'single', // 'single' | 'delivery'
-  location = [-122.4194, 37.7749], // [lng, lat]
-  pickupLocation = [-122.4194, 37.7749],
-  dropoffLocation = [-122.3994, 37.7849],
+  location = DEFAULT_MAP_CENTER.coordinates, // [lng, lat]
+  pickupLocation = DEFAULT_MAP_CENTER.coordinates,
+  dropoffLocation = DEFAULT_MAP_CENTER.dropoffCoordinates,
   onLocationChange,
   onPickupChange,
   onDropoffChange,
@@ -34,7 +35,7 @@ export default function LocationPickerMap({
       const initialLat = mode === 'delivery' ? pickupLocation[1] : location[1];
       const initialLng = mode === 'delivery' ? pickupLocation[0] : location[0];
 
-      const map = L.map(mapContainerRef.current).setView([initialLat, initialLng], 13);
+      const map = L.map(mapContainerRef.current).setView([initialLat, initialLng], DEFAULT_MAP_CENTER.zoom);
       mapInstanceRef.current = map;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -160,7 +161,7 @@ export default function LocationPickerMap({
         }
       },
       () => {
-        alert('Could not retrieve current location. Defaulting to San Francisco.');
+        alert(`Could not retrieve current location. Defaulting to ${DEFAULT_MAP_CENTER.city}.`);
       }
     );
   };

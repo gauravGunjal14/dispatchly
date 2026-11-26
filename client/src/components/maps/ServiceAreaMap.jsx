@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { DEFAULT_MAP_CENTER } from '@/lib/config';
 
-export default function ServiceAreaMap({ center = [-122.4194, 37.7749], radiusKm = 25, onLocationChange }) {
+export default function ServiceAreaMap({ center = DEFAULT_MAP_CENTER.coordinates, radiusKm = 25, onLocationChange }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
@@ -25,7 +26,7 @@ export default function ServiceAreaMap({ center = [-122.4194, 37.7749], radiusKm
       const lat = center[1];
       const lng = center[0];
 
-      const map = L.map(mapContainerRef.current).setView([lat, lng], 11);
+      const map = L.map(mapContainerRef.current).setView([lat, lng], DEFAULT_MAP_CENTER.zoom);
       mapInstanceRef.current = map;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

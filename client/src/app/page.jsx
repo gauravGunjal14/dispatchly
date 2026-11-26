@@ -143,7 +143,7 @@ export default function LandingPage() {
 
             {/* Right Column: Work-Order Ticket Panel (5 cols on desktop, stands out on concrete) */}
             <div className="lg:col-span-5 min-w-0 w-full">
-              <div className="bg-white rounded-panel border border-line shadow-sm overflow-hidden">
+              <div className="bg-white rounded-panel border border-line overflow-hidden">
                 {/* Ink header strip with ticket number */}
                 <div className="bg-ink text-white px-4 py-2.5 flex items-center justify-between">
                   <span className="font-headline font-bold text-sm tracking-tight text-white">
@@ -516,7 +516,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right Showpiece Weights Chart */}
-            <div className="lg:col-span-7 min-w-0 bg-white rounded-panel border border-line p-6 sm:p-8 space-y-6 shadow-sm">
+            <div className="lg:col-span-7 min-w-0 bg-white rounded-panel border border-line p-6 sm:p-8 space-y-6">
               <div className="space-y-4">
                 {landingSampleData.matchingFactors.map((factor, idx) => {
                   // Scaled relative to the largest factor (30% fills the track)
@@ -566,7 +566,7 @@ export default function LandingPage() {
           </div>
 
           {/* Single column of 5 rows with bold lead-in and one line each, 16px text */}
-          <div className="max-w-3xl divide-y divide-line bg-white rounded-panel border border-line px-6 py-2 shadow-sm">
+          <div className="max-w-3xl divide-y divide-line bg-white rounded-panel border border-line px-6 py-2">
             {landingSampleData.trustPractices.map((practice, idx) => {
               const IconComponent =
                 practice.icon === 'ShieldCheck' ? ShieldCheck :
@@ -696,7 +696,7 @@ export default function LandingPage() {
           {/* Four large KPI cards in white with 1px border on concrete background */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {landingSampleData.operatorKpis.metrics.map((kpi, idx) => (
-              <div key={idx} className="p-6 rounded-panel bg-white border border-line space-y-3 shadow-sm">
+              <div key={idx} className="p-6 rounded-panel bg-white border border-line space-y-3">
                 <div className="flex justify-between items-center gap-1">
                   <span className="text-sm font-semibold text-ink/75">{kpi.label}</span>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-control bg-concrete text-ink border border-line flex-shrink-0">
@@ -729,7 +729,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column: Accordion filling full remaining width */}
-            <div className="lg:col-span-8 min-w-0 bg-concrete rounded-panel border border-line p-6 sm:p-7 shadow-sm">
+            <div className="lg:col-span-8 min-w-0 bg-concrete rounded-panel border border-line p-6 sm:p-7">
               <Accordion items={landingSampleData.faqs} defaultOpenId="faq-1" />
             </div>
 

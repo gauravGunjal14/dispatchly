@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { DEFAULT_MAP_CENTER } from '@/lib/config';
 import {
   Compass,
   Radio,
@@ -364,7 +365,7 @@ export default function AdminDispatchMonitorPage() {
                         <td className="py-3.5 px-4">
                           <div className="font-semibold text-slate-900">{b.customer?.name || 'Customer'}</div>
                           <div className="text-[11px] text-slate-400 truncate max-w-[150px]">
-                            {b.location?.address || 'San Francisco'}
+                            {b.location?.address || DEFAULT_MAP_CENTER.city}
                           </div>
                         </td>
                         <td className="py-3.5 px-4">

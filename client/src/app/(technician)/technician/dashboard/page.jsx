@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { DEFAULT_MAP_CENTER } from '@/lib/config';
 import {
   Wrench,
   Package,
@@ -289,8 +290,8 @@ export default function TechnicianDashboardPage() {
     setGpsPinging(true);
     setGpsSuccess(false);
     try {
-      // Simulate slight realistic movement around San Francisco
-      const current = profile?.currentLocation?.coordinates || [-122.4194, 37.7749];
+      // Simulate slight realistic movement around default city center
+      const current = profile?.currentLocation?.coordinates || DEFAULT_MAP_CENTER.coordinates;
       const jitterLng = current[0] + (Math.random() - 0.5) * 0.002;
       const jitterLat = current[1] + (Math.random() - 0.5) * 0.002;
 
@@ -505,7 +506,7 @@ export default function TechnicianDashboardPage() {
                     <p className="font-semibold text-slate-900 line-clamp-2">{b.description}</p>
                     <div className="flex items-center space-x-2 text-slate-500">
                       <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="truncate">{b.location?.address || 'San Francisco, CA'}</span>
+                      <span className="truncate">{b.location?.address || DEFAULT_MAP_CENTER.city}</span>
                     </div>
                     <div className="flex items-center space-x-2 text-slate-500">
                       <Phone className="w-3.5 h-3.5 text-slate-400" />
@@ -608,7 +609,7 @@ export default function TechnicianDashboardPage() {
                 )}
               </div>
               <div className="font-semibold text-slate-900">
-                {currentJob.location?.address || 'San Francisco, CA'}
+                {currentJob.location?.address || DEFAULT_MAP_CENTER.city}
               </div>
               <div className="text-slate-500 text-[11px]">
                 {currentJob.location?.landmark ? `Landmark: ${currentJob.location.landmark}` : ''}

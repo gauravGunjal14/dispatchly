@@ -1,3 +1,5 @@
+import { setPlatformCurrency } from './format';
+
 export const getApiBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
@@ -28,6 +30,13 @@ export const apiClient = async (endpoint, options = {}) => {
   });
 
   const data = await response.json().catch(() => ({}));
+
+  if (response.ok && data?.data) {
+    const detectedCurrency = data.data.settings?.currency || data.data.estimate?.currency;
+    if (detectedCurrency) {
+      setPlatformCurrency(detectedCurrency);
+    }
+  }
 
   if (!response.ok) {
     // If token expired, try refreshing

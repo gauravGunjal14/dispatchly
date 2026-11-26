@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient, getApiBaseUrl } from '@/lib/api';
+import { DEFAULT_MAP_CENTER } from '@/lib/config';
 import { 
   Wrench, 
   MapPin, 
@@ -35,7 +36,7 @@ export default function TechnicianProfilePage() {
   const [skillsText, setSkillsText] = useState('pipe_repair, leak_detection');
   const [qualificationsText, setQualificationsText] = useState('Certified Master Plumber');
   const [experienceYears, setExperienceYears] = useState(3);
-  const [serviceCenter, setServiceCenter] = useState([-122.4194, 37.7749]); // [lng, lat]
+  const [serviceCenter, setServiceCenter] = useState(DEFAULT_MAP_CENTER.coordinates); // [lng, lat]
   const [radiusKm, setRadiusKm] = useState(25);
   const [vehicleType, setVehicleType] = useState('none');
   const [packageCapacityKg, setPackageCapacityKg] = useState(0);

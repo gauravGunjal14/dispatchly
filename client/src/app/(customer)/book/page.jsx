@@ -5,20 +5,22 @@ import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
+import { DEFAULT_MAP_CENTER } from '@/lib/config';
+import { Button, StatusPill } from '@/components/ui';
 import { 
   Wrench, 
-  Flame, 
+  Snowflake, 
   Truck, 
   Clock, 
   MapPin, 
   Zap, 
-  DollarSign, 
   ShieldCheck, 
   ArrowRight, 
   ArrowLeft,
-  CheckCircle,
+  Check,
   AlertCircle,
-  Package
+  FileText
 } from 'lucide-react';
 
 const LocationPickerMap = dynamic(() => import('@/components/maps/LocationPickerMap'), { ssr: false });
@@ -37,16 +39,16 @@ function BookingWizard() {
   // Form Details
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('normal');
-  const [contactPhone, setContactPhone] = useState(user?.phone || '+1 415-555-0101');
-  const [location, setLocation] = useState([-122.4194, 37.7749]);
-  const [address, setAddress] = useState('750 Market Street, San Francisco, CA 94102');
+  const [contactPhone, setContactPhone] = useState(user?.phone || '+91 98200 00101');
+  const [location, setLocation] = useState(DEFAULT_MAP_CENTER.coordinates);
+  const [address, setAddress] = useState('Andheri West, Link Road, Mumbai 400053');
   const [landmark, setLandmark] = useState('');
 
   // Delivery-specific details
-  const [pickupLocation, setPickupLocation] = useState([-122.4194, 37.7749]);
-  const [pickupAddress, setPickupAddress] = useState('750 Market Street, San Francisco, CA');
-  const [dropoffLocation, setDropoffLocation] = useState([-122.3994, 37.7849]);
-  const [dropoffAddress, setDropoffAddress] = useState('100 1st Street, San Francisco, CA');
+  const [pickupLocation, setPickupLocation] = useState(DEFAULT_MAP_CENTER.coordinates);
+  const [pickupAddress, setPickupAddress] = useState('Andheri West, Link Road, Mumbai');
+  const [dropoffLocation, setDropoffLocation] = useState(DEFAULT_MAP_CENTER.dropoffCoordinates);
+  const [dropoffAddress, setDropoffAddress] = useState('Bandra Kurla Complex, Mumbai');
   const [packageWeightKg, setPackageWeightKg] = useState(5);
   const [packageDescription, setPackageDescription] = useState('');
 
@@ -64,7 +66,16 @@ function BookingWizard() {
         setLoadingServices(true);
         const res = await apiClient('/services');
         if (res.success && res.data) {
-          setServices(res.data.services || []);
+          const fetchedServices = res.data.services || [];
+          setServices(fetchedServices);
+
+          // If a category was supplied in search params, pre-select first matching service
+          const matched = fetchedServices.find(
+            (s) => s.category.toLowerCase() === selectedCategory.toLowerCase()
+          );
+          if (matched && !selectedService) {
+            setSelectedService(matched);
+          }
         }
       } catch (err) {
         setErrorMessage(err.message || 'Failed to load services catalogue');
@@ -114,7 +125,6 @@ function BookingWizard() {
 
   const handleSelectService = (service) => {
     setSelectedService(service);
-    setStep(2);
   };
 
   const handleSubmitBooking = async () => {
@@ -122,7 +132,7 @@ function BookingWizard() {
     setErrorMessage('');
 
     try {
-      const isDelivery = selectedService.category === 'delivery';
+      const isDelivery = selectedService.category.toLowerCase() === 'delivery';
 
       const payload = {
         serviceId: selectedService._id,
@@ -170,471 +180,610 @@ function BookingWizard() {
     (s) => s.category.toLowerCase() === selectedCategory.toLowerCase()
   );
 
+  const stepsList = [
+    { number: 1, title: 'Service' },
+    { number: 2, title: 'Job details' },
+    { number: 3, title: 'Location' },
+    { number: 4, title: 'Confirmation' },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto py-6 space-y-8">
-      {/* Step Indicator */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900">Request Field Service</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Step {step} of 4: {step === 1 && 'Select Service'}
-            {step === 2 && 'Job Details & Priority'}
-            {step === 3 && 'Service Location Pin'}
-            {step === 4 && 'Quotation & Confirmation'}
-          </p>
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 text-ink">
+      {/* Stepper Header */}
+      <div className="space-y-4 pb-4 border-b border-line">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="space-y-0.5">
+            <h1 className="font-headline font-bold text-2xl sm:text-3xl text-ink">
+              Book a service
+            </h1>
+            <p className="text-sm text-ink/70">
+              Matched by technician skill, parts in stock, and arrival deadline.
+            </p>
+          </div>
+          <span className="text-xs px-2.5 py-1 rounded-control bg-concrete text-ink font-semibold self-start sm:self-auto">
+            Step {step} of 4: {stepsList[step - 1].title}
+          </span>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {[1, 2, 3, 4].map((s) => (
-            <div
-              key={s}
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition ${
-                step === s
-                  ? 'bg-blue-600 text-white'
-                  : step > s
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-slate-200 text-slate-500'
-              }`}
-            >
-              {step > s ? '✓' : s}
-            </div>
-          ))}
+        {/* Stepper Indicators */}
+        <div className="grid grid-cols-4 gap-2 pt-2">
+          {stepsList.map((s) => {
+            const isCompleted = step > s.number;
+            const isCurrent = step === s.number;
+            return (
+              <div
+                key={s.number}
+                className={`py-2 px-3 rounded-control border text-left transition ${
+                  isCurrent
+                    ? 'bg-ink text-white border-ink'
+                    : isCompleted
+                    ? 'bg-concrete text-ink border-line'
+                    : 'bg-white text-ink/40 border-line'
+                }`}
+              >
+                <div className="text-[11px] font-mono">
+                  {isCompleted ? 'Done' : `0${s.number}`}
+                </div>
+                <div className="text-xs font-semibold truncate mt-0.5">
+                  {s.title}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center space-x-2">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+        <div className="p-3.5 rounded-control bg-status-danger-tint border border-status-danger/30 text-status-danger-text text-sm flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-status-danger" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* STEP 1: SERVICE SELECTION */}
-      {step === 1 && (
-        <div className="space-y-6">
-          {/* Category Tabs */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { id: 'Plumbing', label: 'Plumbing', icon: Wrench, color: 'text-blue-600 bg-blue-50' },
-              { id: 'HVAC', label: 'HVAC', icon: Flame, color: 'text-orange-600 bg-orange-50' },
-              { id: 'Delivery', label: 'Urgent Delivery', icon: Truck, color: 'text-emerald-600 bg-emerald-50' },
-            ].map(({ id, label, icon: Icon, color }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setSelectedCategory(id)}
-                className={`p-4 rounded-2xl border text-center flex flex-col items-center space-y-2 transition ${
-                  selectedCategory.toLowerCase() === id.toLowerCase()
-                    ? 'border-blue-600 bg-blue-50/50 shadow-sm'
-                    : 'border-slate-200 bg-white hover:bg-slate-50'
-                }`}
-              >
-                <div className={`p-2.5 rounded-xl ${color}`}>
-                  <Icon className="w-5 h-5" />
+      {/* Main 2-column Grid: Form (8 cols) + Sticky Summary Panel (4 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left Column: Form Steps */}
+        <div className="lg:col-span-8 space-y-6 min-w-0">
+          
+          {/* STEP 1: SERVICE SELECTION */}
+          {step === 1 && (
+            <div className="space-y-6">
+              {/* Category Selector Tabs */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-ink">
+                  Select service category
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'Plumbing', label: 'Plumbing', icon: Wrench },
+                    { id: 'HVAC', label: 'AC and HVAC', icon: Snowflake },
+                    { id: 'Delivery', label: 'Urgent delivery', icon: Truck },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(id);
+                        const matched = services.find((s) => s.category.toLowerCase() === id.toLowerCase());
+                        if (matched) setSelectedService(matched);
+                      }}
+                      className={`p-3.5 rounded-control border text-left flex flex-col items-start gap-2 transition ${
+                        selectedCategory.toLowerCase() === id.toLowerCase()
+                          ? 'bg-ink text-white border-ink'
+                          : 'bg-white text-ink border-line hover:bg-concrete'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
+                      <span className="text-xs sm:text-sm font-semibold">{label}</span>
+                    </button>
+                  ))}
                 </div>
-                <span className="font-bold text-sm text-slate-800">{label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Service Cards */}
-          <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-800">
-              Available {selectedCategory} Services
-            </h2>
-
-            {loadingServices ? (
-              <div className="p-12 text-center text-slate-400">Loading service catalogue...</div>
-            ) : filteredServices.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 bg-white rounded-2xl border">
-                No active services found in this category.
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredServices.map((service) => (
-                  <div
-                    key={service._id}
-                    onClick={() => handleSelectService(service)}
-                    className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md cursor-pointer transition flex flex-col justify-between space-y-3"
+
+              {/* Service Cards */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h2 className="font-headline font-bold text-base text-ink">
+                    Available {selectedCategory} services
+                  </h2>
+                  <span className="text-xs text-ink/60">
+                    {filteredServices.length} options
+                  </span>
+                </div>
+
+                {loadingServices ? (
+                  <div className="p-8 text-center text-ink/60 bg-white rounded-panel border border-line text-sm">
+                    Loading services catalogue...
+                  </div>
+                ) : filteredServices.length === 0 ? (
+                  <div className="p-8 text-center text-ink/60 bg-white rounded-panel border border-line text-sm">
+                    No active services found in this category.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {filteredServices.map((service) => {
+                      const isSelected = selectedService?._id === service._id;
+                      return (
+                        <div
+                          key={service._id}
+                          onClick={() => handleSelectService(service)}
+                          className={`p-4 rounded-control border cursor-pointer transition flex flex-col justify-between space-y-3 ${
+                            isSelected
+                              ? 'bg-white border-ink ring-1 ring-ink'
+                              : 'bg-white border-line hover:border-ink/60 hover:bg-concrete/30'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-start gap-2">
+                              <h3 className="font-bold text-sm text-ink leading-tight">
+                                {service.name}
+                              </h3>
+                              {isSelected && (
+                                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-control bg-ink text-white flex-shrink-0">
+                                  Selected
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-ink/70 line-clamp-2 leading-relaxed">
+                              {service.description}
+                            </p>
+                          </div>
+
+                          <div className="pt-2 border-t border-line/60 flex justify-between items-center text-xs">
+                            <span className="text-ink/60 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-ink/50" />
+                              <span>~{service.estimatedDurationMin} mins</span>
+                            </span>
+                            <span className="font-semibold text-ink">
+                              {service.pricingType === 'fixed' && formatMoney(service.basePrice)}
+                              {service.pricingType === 'range' && `${formatMoney(service.minPrice)} – ${formatMoney(service.maxPrice)}`}
+                              {service.pricingType === 'quotation' && 'Inspection quote'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Step 1 Actions: One Primary Amber Button */}
+              <div className="pt-4 border-t border-line flex justify-end">
+                <Button
+                  variant="primary"
+                  size="md"
+                  disabled={!selectedService}
+                  onClick={() => setStep(2)}
+                  rightIcon={ArrowRight}
+                >
+                  Continue to job details
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: JOB DETAILS & PRIORITY */}
+          {step === 2 && selectedService && (
+            <div className="bg-white rounded-panel border border-line p-6 space-y-6">
+              <div className="space-y-1 border-b border-line pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 rounded-control bg-concrete text-ink font-semibold">
+                    {selectedService.category}
+                  </span>
+                  <h2 className="font-headline font-bold text-lg text-ink">
+                    {selectedService.name}
+                  </h2>
+                </div>
+                <p className="text-xs text-ink/70">
+                  Provide details so the dispatch engine can match parts and tools in the technician's van.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-ink">
+                  Describe the problem or requirements
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g. Water leak beneath the kitchen sink; main shutoff valve seems seized."
+                  className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
+                />
+              </div>
+
+              {/* Dispatch Priority */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-ink">
+                  Arrival deadline and dispatch priority
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`p-4 rounded-control border cursor-pointer flex items-start gap-3 transition ${
+                      priority === 'normal'
+                        ? 'bg-white border-ink ring-1 ring-ink'
+                        : 'bg-white border-line hover:bg-concrete/40'
+                    }`}
                   >
-                    <div>
-                      <div className="flex justify-between items-start gap-2">
-                        <h3 className="font-bold text-slate-900 text-base">{service.name}</h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 capitalize whitespace-nowrap">
-                          {service.pricingType}
-                        </span>
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="normal"
+                      checked={priority === 'normal'}
+                      onChange={() => setPriority('normal')}
+                      className="mt-0.5 text-ink focus:ring-ink"
+                    />
+                    <div className="space-y-0.5">
+                      <div className="text-xs sm:text-sm font-bold text-ink">
+                        Standard response
                       </div>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                        {service.description}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
-                      <div className="flex items-center space-x-1 text-slate-400">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>~{service.estimatedDurationMin} mins</span>
-                      </div>
-
-                      <div className="font-bold text-blue-600 text-sm">
-                        {service.pricingType === 'fixed' && `$${service.basePrice.toFixed(2)}`}
-                        {service.pricingType === 'range' && `$${service.minPrice} - $${service.maxPrice}`}
-                        {service.pricingType === 'quotation' && 'Inspection Quote'}
+                      <div className="text-xs text-ink/70">
+                        Arrival deadline within standard window. No surcharge applied.
                       </div>
                     </div>
-                  </div>
-                ))}
+                  </label>
+
+                  <label
+                    className={`p-4 rounded-control border cursor-pointer flex items-start gap-3 transition ${
+                      priority === 'urgent'
+                        ? 'bg-white border-ink ring-1 ring-ink'
+                        : 'bg-white border-line hover:bg-concrete/40'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="urgent"
+                      checked={priority === 'urgent'}
+                      onChange={() => setPriority('urgent')}
+                      className="mt-0.5 text-ink focus:ring-ink"
+                    />
+                    <div className="space-y-0.5">
+                      <div className="text-xs sm:text-sm font-bold text-ink flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-ink" />
+                        <span>Urgent emergency priority</span>
+                      </div>
+                      <div className="text-xs text-ink/70">
+                        Fastest matching with high priority dispatch offer (20% surcharge).
+                      </div>
+                    </div>
+                  </label>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* STEP 2: JOB DETAILS & PRIORITY */}
-      {step === 2 && selectedService && (
-        <div className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center space-x-3 pb-4 border-b border-slate-100">
-            <span className="font-bold text-lg text-slate-900">{selectedService.name}</span>
-            <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-0.5 rounded-full capitalize">
-              {selectedService.category}
-            </span>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Describe the Problem / Requirement
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Water leak beneath the kitchen sink; main shutoff valve seems seized."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Priority Radios */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Dispatch Priority & SLA
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label
-                className={`p-4 rounded-xl border cursor-pointer flex items-start space-x-3 transition ${
-                  priority === 'normal'
-                    ? 'border-blue-600 bg-blue-50/50'
-                    : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="priority"
-                  value="normal"
-                  checked={priority === 'normal'}
-                  onChange={() => setPriority('normal')}
-                  className="mt-1"
-                />
-                <div>
-                  <div className="font-bold text-sm text-slate-900">Standard Response</div>
-                  <div className="text-xs text-slate-500 mt-0.5">
-                    Standard guaranteed response & arrival SLA. No surcharge applied.
+              {/* Delivery Specifics */}
+              {selectedService.category.toLowerCase() === 'delivery' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-line">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink">
+                      Package weight (kg)
+                    </label>
+                    <input
+                      type="number"
+                      min="0.5"
+                      max="1000"
+                      step="0.5"
+                      value={packageWeightKg}
+                      onChange={(e) => setPackageWeightKg(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink">
+                      Package contents summary
+                    </label>
+                    <input
+                      type="text"
+                      value={packageDescription}
+                      onChange={(e) => setPackageDescription(e.target.value)}
+                      placeholder="e.g. Replacement valve hardware"
+                      className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
+                    />
                   </div>
                 </div>
-              </label>
+              )}
 
-              <label
-                className={`p-4 rounded-xl border cursor-pointer flex items-start space-x-3 transition ${
-                  priority === 'urgent'
-                    ? 'border-amber-500 bg-amber-50/50'
-                    : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="priority"
-                  value="urgent"
-                  checked={priority === 'urgent'}
-                  onChange={() => setPriority('urgent')}
-                  className="mt-1"
-                />
-                <div>
-                  <div className="font-bold text-sm text-amber-900 flex items-center space-x-1.5">
-                    <Zap className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Urgent Emergency Priority</span>
-                  </div>
-                  <div className="text-xs text-amber-800 mt-0.5">
-                    Fastest technician matching (20% priority surcharge applied to estimate).
-                  </div>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          {/* Delivery Specifics */}
-          {selectedService.category === 'delivery' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Package Weight (kg)
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-ink">
+                  Contact phone for technician
                 </label>
                 <input
-                  type="number"
-                  min="0.5"
-                  max="1000"
-                  step="0.5"
-                  value={packageWeightKg}
-                  onChange={(e) => setPackageWeightKg(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"
+                  type="tel"
+                  required
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Package Contents Summary
-                </label>
-                <input
-                  type="text"
-                  value={packageDescription}
-                  onChange={(e) => setPackageDescription(e.target.value)}
-                  placeholder="Legal contracts, replacement compressor parts, etc."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"
-                />
+              {/* Step 2 Actions */}
+              <div className="pt-4 border-t border-line flex justify-between items-center">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setStep(1)}
+                  leftIcon={ArrowLeft}
+                >
+                  Back
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  disabled={!description.trim() || !contactPhone.trim()}
+                  onClick={() => setStep(3)}
+                  rightIcon={ArrowRight}
+                >
+                  Continue to location
+                </Button>
               </div>
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Contact Phone for Technician
-            </label>
-            <input
-              type="tel"
-              required
-              value={contactPhone}
-              onChange={(e) => setContactPhone(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"
-            />
-          </div>
-
-          <div className="flex justify-between pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-xl border text-slate-600 text-sm font-semibold hover:bg-slate-50"
-            >
-              &larr; Change Service
-            </button>
-            <button
-              type="button"
-              disabled={!description.trim() || !contactPhone.trim()}
-              onClick={() => setStep(3)}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 shadow disabled:opacity-50"
-            >
-              Set Location &rarr;
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 3: LOCATION PICKING */}
-      {step === 3 && selectedService && (
-        <div className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">
-              {selectedService.category === 'delivery'
-                ? 'Set Pickup and Drop-off Points'
-                : 'Confirm Service Location'}
-            </h2>
-            <p className="text-xs text-slate-500">
-              Drop pin precisely so the dispatch engine can calculate accurate road travel times.
-            </p>
-          </div>
-
-          {selectedService.category === 'delivery' ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-blue-700 uppercase tracking-wider mb-1">
-                    Pickup Address
-                  </label>
-                  <input
-                    type="text"
-                    value={pickupAddress}
-                    onChange={(e) => setPickupAddress(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-blue-300 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">
-                    Drop-off Address
-                  </label>
-                  <input
-                    type="text"
-                    value={dropoffAddress}
-                    onChange={(e) => setDropoffAddress(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-emerald-300 text-sm"
-                  />
-                </div>
+          {/* STEP 3: LOCATION PICKING */}
+          {step === 3 && selectedService && (
+            <div className="bg-white rounded-panel border border-line p-6 space-y-6">
+              <div className="space-y-1 border-b border-line pb-4">
+                <h2 className="font-headline font-bold text-lg text-ink">
+                  {selectedService.category.toLowerCase() === 'delivery'
+                    ? 'Set pickup and drop-off points'
+                    : 'Confirm service location'}
+                </h2>
+                <p className="text-xs text-ink/70">
+                  Drop a pin so the dispatch engine can calculate travel distance and dispatch feasibility.
+                </p>
               </div>
 
-              <LocationPickerMap
-                mode="delivery"
-                pickupLocation={pickupLocation}
-                dropoffLocation={dropoffLocation}
-                onPickupChange={(coords) => setPickupLocation(coords)}
-                onDropoffChange={(coords) => setDropoffLocation(coords)}
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Street Address
-                </label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
-                />
-              </div>
+              {selectedService.category.toLowerCase() === 'delivery' ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-ink">
+                        Pickup address
+                      </label>
+                      <input
+                        type="text"
+                        value={pickupAddress}
+                        onChange={(e) => setPickupAddress(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-ink">
+                        Drop-off address
+                      </label>
+                      <input
+                        type="text"
+                        value={dropoffAddress}
+                        onChange={(e) => setDropoffAddress(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
+                      />
+                    </div>
+                  </div>
 
-              <LocationPickerMap
-                mode="single"
-                location={location}
-                onLocationChange={(coords) => setLocation(coords)}
-              />
+                  {/* Framed Map Container */}
+                  <div className="rounded-control border border-line overflow-hidden">
+                    <LocationPickerMap
+                      mode="delivery"
+                      pickupLocation={pickupLocation}
+                      dropoffLocation={dropoffLocation}
+                      onPickupChange={(coords) => setPickupLocation(coords)}
+                      onDropoffChange={(coords) => setDropoffLocation(coords)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink">
+                      Street address
+                    </label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Landmark / Unit Number / Gate Code (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={landmark}
-                  onChange={(e) => setLandmark(e.target.value)}
-                  placeholder="Unit 4B, ring doorbell #12"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
-                />
+                  {/* Framed Map Container */}
+                  <div className="rounded-control border border-line overflow-hidden">
+                    <LocationPickerMap
+                      mode="single"
+                      location={location}
+                      onLocationChange={(coords) => setLocation(coords)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-ink">
+                      Unit, landmark, or gate code (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={landmark}
+                      onChange={(e) => setLandmark(e.target.value)}
+                      placeholder="e.g. Apt 4B, ring doorbell"
+                      className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3 Actions */}
+              <div className="pt-4 border-t border-line flex justify-between items-center">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setStep(2)}
+                  leftIcon={ArrowLeft}
+                >
+                  Back
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => setStep(4)}
+                  rightIcon={ArrowRight}
+                >
+                  Continue to review
+                </Button>
               </div>
             </div>
           )}
 
-          <div className="flex justify-between pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="px-4 py-2 rounded-xl border text-slate-600 text-sm font-semibold hover:bg-slate-50"
-            >
-              &larr; Back
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(4)}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 shadow"
-            >
-              View Estimate & Review &rarr;
-            </button>
-          </div>
+          {/* STEP 4: REVIEW & CONFIRMATION */}
+          {step === 4 && selectedService && (
+            <div className="bg-white rounded-panel border border-line p-6 space-y-6">
+              <div className="space-y-1 border-b border-line pb-4">
+                <h2 className="font-headline font-bold text-lg text-ink">
+                  Review and confirm dispatch request
+                </h2>
+                <p className="text-xs text-ink/70">
+                  Please verify your service details before dispatch matching begins.
+                </p>
+              </div>
+
+              {/* Summary Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+                <div className="p-4 rounded-control bg-concrete/50 border border-line space-y-1">
+                  <span className="text-ink/60 font-semibold block text-xs">Service</span>
+                  <div className="font-bold text-ink">{selectedService.name}</div>
+                  <p className="text-ink/70 mt-1">{description}</p>
+                </div>
+
+                <div className="p-4 rounded-control bg-concrete/50 border border-line space-y-1">
+                  <span className="text-ink/60 font-semibold block text-xs">Location</span>
+                  <div className="font-bold text-ink">
+                    {selectedService.category.toLowerCase() === 'delivery' ? pickupAddress : address}
+                  </div>
+                  {landmark && <p className="text-ink/70">{landmark}</p>}
+                  <p className="text-ink/60 mt-1">Contact: {contactPhone}</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-control bg-concrete border border-line space-y-2 text-xs">
+                <div className="font-semibold text-ink flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-ink" />
+                  <span>How your booking proceeds:</span>
+                </div>
+                <ul className="space-y-1 text-ink/80 list-disc list-inside">
+                  <li>Our dispatch engine sends an offer to the highest-scoring qualified technician.</li>
+                  <li>Technicians have 60 seconds to accept before auto-reassignment to the next candidate.</li>
+                  <li>You will track your technician live on the map with expected arrival time.</li>
+                  <li>For diagnostic jobs, you review and approve an itemised quote before any work starts.</li>
+                </ul>
+              </div>
+
+              {/* Step 4 Actions */}
+              <div className="pt-4 border-t border-line flex justify-between items-center">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setStep(3)}
+                  leftIcon={ArrowLeft}
+                >
+                  Back
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  disabled={submitting}
+                  onClick={handleSubmitBooking}
+                >
+                  {submitting ? 'Matching technician...' : 'Confirm and request technician'}
+                </Button>
+              </div>
+            </div>
+          )}
+
         </div>
-      )}
 
-      {/* STEP 4: QUOTATION & CONFIRMATION */}
-      {step === 4 && selectedService && (
-        <div className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Review & Confirm Dispatch Request</h2>
-            <p className="text-xs text-slate-500">
-              Verify your booking details and review the estimated price calculation.
-            </p>
-          </div>
+        {/* Right Column: Sticky Summary Panel with Live Estimate */}
+        <div className="lg:col-span-4 min-w-0">
+          <div className="sticky top-24 bg-white rounded-panel border border-line p-5 space-y-5">
+            <div className="space-y-1 border-b border-line pb-3">
+              <span className="text-xs font-semibold text-ink/60 block">
+                Booking summary
+              </span>
+              <h3 className="font-headline font-bold text-base text-ink truncate">
+                {selectedService?.name || 'Select a service'}
+              </h3>
+            </div>
 
-          {/* Pricing Card */}
-          <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 space-y-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-blue-700">Estimated Pricing</div>
-                <div className="text-2xl font-black text-slate-900 mt-0.5">
-                  {estimate?.quotationRequired ? (
-                    <span className="text-lg text-blue-900 font-bold">On-Site Inspection Quotation</span>
-                  ) : estimate?.type === 'range' ? (
-                    `$${estimate.estimatedMin.toFixed(2)} - $${estimate.estimatedMax.toFixed(2)}`
-                  ) : (
-                    `$${estimate?.baseAmount?.toFixed(2) || '0.00'}`
+            {/* Price Estimate Card */}
+            <div className="p-4 rounded-control bg-concrete/60 border border-line space-y-2">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-semibold text-ink/70">
+                  Estimated price
+                </span>
+                <span className="text-[11px] font-bold px-1.5 py-0.2 rounded-control bg-white text-ink border border-line capitalize">
+                  {priority} response
+                </span>
+              </div>
+
+              <div className="text-xl sm:text-2xl font-headline font-bold text-ink tabular-nums">
+                {estimating ? (
+                  <span className="text-sm font-normal text-ink/60">Calculating...</span>
+                ) : estimate?.quotationRequired ? (
+                  <span className="text-base text-ink">Inspection quote</span>
+                ) : estimate?.type === 'range' ? (
+                  `${formatMoney(estimate.estimatedMin)} – ${formatMoney(estimate.estimatedMax)}`
+                ) : (
+                  formatMoney(estimate?.baseAmount || selectedService?.basePrice || 0)
+                )}
+              </div>
+
+              {estimate?.quotationRequired ? (
+                <p className="text-xs text-ink/70 border-t border-line/60 pt-2 leading-relaxed">
+                  Technician diagnoses on site. You approve an itemised quote before work begins.
+                </p>
+              ) : estimate?.breakdown ? (
+                <div className="text-xs text-ink/70 border-t border-line/60 pt-2 space-y-1">
+                  {estimate.distanceKm > 0 && (
+                    <div className="flex justify-between">
+                      <span>Travel distance ({estimate.distanceKm} km):</span>
+                      <span className="font-semibold text-ink">{formatMoney(estimate.breakdown.distanceFee)}</span>
+                    </div>
+                  )}
+                  {estimate.urgentSurcharge > 0 && (
+                    <div className="flex justify-between font-semibold text-ink">
+                      <span>Urgent dispatch (+20%):</span>
+                      <span>+{formatMoney(estimate.urgentSurcharge)}</span>
+                    </div>
                   )}
                 </div>
-              </div>
-
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-white text-blue-800 shadow-sm border border-blue-200 capitalize">
-                Priority: {priority}
-              </span>
+              ) : null}
             </div>
 
-            {estimate?.breakdown && !estimate.quotationRequired && (
-              <div className="text-xs text-slate-600 border-t border-blue-200/60 pt-2 space-y-1">
-                {estimate.distanceKm > 0 && (
-                  <div className="flex justify-between">
-                    <span>Transit Distance ({estimate.distanceKm} km):</span>
-                    <span className="font-semibold">+${estimate.breakdown.distanceFee.toFixed(2)}</span>
-                  </div>
-                )}
-                {estimate.urgentSurcharge > 0 && (
-                  <div className="flex justify-between text-amber-700">
-                    <span>Urgent Priority Dispatch (+20%):</span>
-                    <span className="font-semibold">+${estimate.urgentSurcharge.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-slate-500 text-[11px] pt-1">
-                  <span>Standard Platform Fee:</span>
-                  <span>Included ($1.50 charged upon job completion)</span>
-                </div>
+            {/* Arrival Deadline Notice */}
+            <div className="space-y-1.5 text-xs text-ink/70">
+              <div className="flex items-center gap-2 font-semibold text-ink">
+                <Clock className="w-4 h-4 text-ink/60 flex-shrink-0" />
+                <span>Arrival deadline: about 2 hours</span>
               </div>
-            )}
-          </div>
-
-          {/* Summary Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-slate-400 font-bold uppercase">Service Details</span>
-              <div className="font-bold text-slate-800 text-sm">{selectedService.name}</div>
-              <p className="text-slate-600">{description}</p>
+              <p className="text-xs text-ink/60 pl-6">
+                Guaranteed arrival window enforced across active fleet.
+              </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-slate-400 font-bold uppercase">Destination Address</span>
-              <div className="font-bold text-slate-800 text-sm">
-                {selectedService.category === 'delivery' ? pickupAddress : address}
-              </div>
-              <div className="text-slate-500">Contact: {contactPhone}</div>
+            {/* Test Mode Banner */}
+            <div className="p-3 rounded-control bg-concrete border border-line text-xs space-y-1 text-ink/80">
+              <div className="font-semibold text-ink">Test mode active</div>
+              <div>No real money is charged. Payment is settled in mock mode upon completion.</div>
             </div>
-          </div>
-
-          <div className="flex justify-between pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setStep(3)}
-              className="px-4 py-2 rounded-xl border text-slate-600 text-sm font-semibold hover:bg-slate-50"
-            >
-              &larr; Back
-            </button>
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={handleSubmitBooking}
-              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition disabled:opacity-50"
-            >
-              {submitting ? 'Initiating Dispatch...' : 'Confirm Request & Match Technician'}
-            </button>
           </div>
         </div>
-      )}
+
+      </div>
     </div>
   );
 }
 
 export default function BookingPage() {
   return (
-    <Suspense fallback={<div className="p-12 text-center text-slate-500">Loading booking portal...</div>}>
+    <Suspense fallback={<div className="max-w-4xl mx-auto py-16 text-center text-ink/60">Loading booking wizard...</div>}>
       <BookingWizard />
     </Suspense>
   );
