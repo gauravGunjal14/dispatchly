@@ -1,5 +1,7 @@
+const { redactSecrets } = require('../utils/redact');
+
 const errorHandler = (err, req, res, next) => {
-  console.error('[Error Middleware]', err);
+  console.error('[Error Middleware]', redactSecrets(err));
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {

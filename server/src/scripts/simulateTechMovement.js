@@ -1,6 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { connectDB } = require('../config/db');
+const { redactSecrets } = require('../utils/redact');
 const Booking = require('../models/Booking');
 const TechnicianProfile = require('../models/TechnicianProfile');
 const { processLocationUpdate } = require('../services/tracking/locationService');
@@ -116,6 +117,6 @@ async function simulate() {
 }
 
 simulate().catch((err) => {
-  console.error('[Simulation Error]', err);
+  console.error('[Simulation Error]', redactSecrets(err));
   process.exit(1);
 });

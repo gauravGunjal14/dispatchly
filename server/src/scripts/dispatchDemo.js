@@ -12,6 +12,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { connectDB, disconnectDB } = require('../config/db');
+const { redactSecrets } = require('../utils/redact');
 const User = require('../models/User');
 const TechnicianProfile = require('../models/TechnicianProfile');
 const InventoryItem = require('../models/InventoryItem');
@@ -268,7 +269,7 @@ const runDemo = async () => {
     await DispatchOffer.deleteMany({ booking: demoBooking._id });
     await Booking.findByIdAndDelete(demoBooking._id);
   } catch (err) {
-    console.error('\n[Demo Error]', err);
+    console.error('\n[Demo Error]', redactSecrets(err));
   } finally {
     await disconnectDB();
     process.exit(0);

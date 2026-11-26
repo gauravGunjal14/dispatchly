@@ -3,6 +3,7 @@ const readline = require('readline');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const { connectDB, disconnectDB } = require('../config/db');
+const { redactSecrets } = require('../utils/redact');
 
 const ask = (query) => {
   const rl = readline.createInterface({
@@ -84,7 +85,7 @@ const createFirstAdmin = async () => {
     await disconnectDB();
     process.exit(0);
   } catch (err) {
-    console.error('[Error creating admin]:', err.message);
+    console.error('[Error creating admin]:', redactSecrets(err));
     await disconnectDB();
     process.exit(1);
   }

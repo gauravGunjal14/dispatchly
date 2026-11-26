@@ -1,6 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { connectDB, disconnectDB } = require('../config/db');
+const { redactSecrets } = require('../utils/redact');
 
 // Safety guard: Strictly block seeding in production
 if (process.env.NODE_ENV === 'production') {
@@ -1288,7 +1289,7 @@ const seedData = async () => {
     console.log('             - Disputed (Open Customer Complaint), Cancelled');
     console.log('--------------------------------------------------');
   } catch (error) {
-    console.error('[Seed Error]', error);
+    console.error('[Seed Error]', redactSecrets(error));
   } finally {
     await disconnectDB();
     process.exit(0);

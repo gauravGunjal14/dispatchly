@@ -16,6 +16,7 @@ const TechnicianProfile = require('./models/TechnicianProfile');
 const { processLocationUpdate } = require('./services/tracking/locationService');
 
 const { connectDB } = require('./config/db');
+const { redactSecrets } = require('./utils/redact');
 const mongoose = require('mongoose');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
@@ -271,7 +272,7 @@ const startServer = async () => {
       });
     }
   } catch (error) {
-    console.error('[Server] Failed to start server:', error);
+    console.error('[Server] Failed to start server:', redactSecrets(error));
     process.exit(1);
   }
 };

@@ -1,6 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { connectDB, disconnectDB } = require('../config/db');
+const { redactSecrets } = require('../utils/redact');
 
 const User = require('../models/User');
 const TechnicianProfile = require('../models/TechnicianProfile');
@@ -586,7 +587,7 @@ if (require.main === module) {
   resetDemoDatabase()
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error(err.message || err);
+      console.error(redactSecrets(err));
       process.exit(1);
     });
 }

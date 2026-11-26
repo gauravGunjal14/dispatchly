@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { connectDB, disconnectDB } = require('../config/db');
+const { redactSecrets } = require('../utils/redact');
 const User = require('../models/User');
 const TechnicianProfile = require('../models/TechnicianProfile');
 const TechnicianDocument = require('../models/TechnicianDocument');
@@ -155,7 +156,6 @@ async function createDemoData() {
     console.log('\n========================================================');
     console.log(' Successfully Created Accounts & Uploaded Dummy Document!');
     console.log('========================================================');
-    console.log('Common Password for all 3 accounts: Password123!\n');
     console.log('1. ADMIN ACCOUNT:');
     console.log('   Email:    alex.admin@dispatchly.com');
     console.log('   Role:     admin');
@@ -172,7 +172,7 @@ async function createDemoData() {
     console.log('   Inventory: Stocked with VALVE-01 (8 pcs) & R410A-CYL (4 pcs)');
     console.log('========================================================\n');
   } catch (err) {
-    console.error('[Setup Error]', err);
+    console.error('[Setup Error]', redactSecrets(err));
   } finally {
     await disconnectDB();
     process.exit(0);
