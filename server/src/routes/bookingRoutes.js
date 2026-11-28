@@ -26,6 +26,7 @@ router.post(
 );
 router.get('/', authenticateToken, authorizeRoles('customer'), bookingController.getMyBookings);
 router.get('/:id', authenticateToken, authorizeRoles('customer', 'admin'), bookingController.getMyBookingDetail);
+router.get('/:id/route', authenticateToken, bookingController.getBookingRoute);
 router.post(
   '/:id/cancel',
   authenticateToken,

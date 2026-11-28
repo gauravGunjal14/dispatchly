@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { DEFAULT_MAP_CENTER } from '@/lib/config';
+
+const BrandMap = dynamic(() => import('@/components/map/BrandMap'), { ssr: false });
 import {
   Compass,
   Radio,
@@ -41,6 +44,7 @@ export default function AdminDispatchMonitorPage() {
   const [reassignments, setReassignments] = useState([]);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [diagnosticData, setDiagnosticData] = useState(null);
+  const [selectedRoute, setSelectedRoute] = useState(null);
   const [loadingDiagnostic, setLoadingDiagnostic] = useState(false);
   const [overrideModalBooking, setOverrideModalBooking] = useState(null);
   const [approvedTechnicians, setApprovedTechnicians] = useState([]);
@@ -106,9 +110,17 @@ export default function AdminDispatchMonitorPage() {
     setSelectedBookingId(bookingId);
     setLoadingDiagnostic(true);
     try {
-      const res = await apiClient(`/admin/dispatch/${bookingId}`);
+      const [res, routeRes] = await Promise.all([
+        apiClient(`/admin/dispatch/${bookingId}`),
+        apiClient(`/bookings/${bookingId}/route`).catch(() => ({ success: false })),
+      ]);
       if (res.success) {
         setDiagnosticData(res.data);
+      }
+      if (routeRes.success && routeRes.data) {
+        setSelectedRoute(routeRes.data);
+      } else {
+        setSelectedRoute(null);
       }
     } catch (err) {
       console.error('Failed to load booking dispatch diagnostic:', err);
@@ -279,6 +291,45 @@ export default function AdminDispatchMonitorPage() {
           <div className="text-2xl font-black text-red-600 mt-1">{stats.failed}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">Manual intervention</div>
         </div>
+      </div>
+
+      {/* Live Operations Map */}
+      <div className="bg-white p-4 rounded-panel border border-line space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-ink">Live dispatch map</h2>
+          <span className="text-xs text-ink/60">
+            {bookings.length} active bookings &bull; {approvedTechnicians.length} approved technicians
+          </span>
+        </div>
+        <BrandMap
+          mode="admin"
+          heightClass="h-72"
+          routeGeometry={selectedRoute?.geometry}
+          adminMarkers={[
+            ...bookings
+              .filter((b) => Array.isArray(b.location?.coordinates))
+              .map((b) => ({
+                id: `bk_${b._id}`,
+                bookingId: b._id,
+                coordinates: b.location.coordinates,
+                label: b.ticketNumber || 'Booking',
+                type: 'booking',
+                category: b.category,
+              })),
+            ...approvedTechnicians
+              .filter((t) => Array.isArray(t.currentLocation?.coordinates))
+              .map((t) => ({
+                id: `tech_${t._id}`,
+                coordinates: t.currentLocation.coordinates,
+                label: t.user?.name || 'Technician',
+                type: 'technician',
+                category: t.serviceCategories?.[0] || 'plumbing',
+              })),
+          ]}
+          onAdminMarkerClick={(marker) => {
+            if (marker.bookingId) openDiagnostic(marker.bookingId);
+          }}
+        />
       </div>
 
       {/* Main Tab Content */}

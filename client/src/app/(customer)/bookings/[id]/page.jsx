@@ -8,7 +8,8 @@ import { apiClient } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { formatMoney, formatDate, getPlatformCurrency } from '@/lib/format';
 import { DEFAULT_MAP_CENTER } from '@/lib/config';
-import LiveTrackingMap from '@/components/booking/LiveTrackingMap';
+import dynamic from 'next/dynamic';
+const BrandMap = dynamic(() => import('@/components/map/BrandMap'), { ssr: false });
 import { Button, StatusPill, Panel } from '@/components/ui';
 import { 
   Clock, 
@@ -54,6 +55,7 @@ export default function BookingDetailPage() {
   const [error, setError] = useState('');
   const [technicianCoords, setTechnicianCoords] = useState(null);
   const [liveEta, setLiveEta] = useState(null);
+  const [routeData, setRouteData] = useState(null);
 
   // Modals & form state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -96,6 +98,14 @@ export default function BookingDetailPage() {
         }
         if (res.data.booking?.assignedTechnician?.currentLocation?.coordinates) {
           setTechnicianCoords(res.data.booking.assignedTechnician.currentLocation.coordinates);
+          try {
+            const routeRes = await apiClient(`/bookings/${id}/route`);
+            if (routeRes.success && routeRes.data) {
+              setRouteData(routeRes.data);
+            }
+          } catch {
+            // Non-blocking route fetch
+          }
         }
       }
 
@@ -441,16 +451,17 @@ export default function BookingDetailPage() {
             </div>
 
             {/* Framed Map */}
-            <div className="h-[360px] w-full">
-              <LiveTrackingMap
-                customerCoords={booking.location?.coordinates || DEFAULT_MAP_CENTER.coordinates}
-                customerAddress={booking.location?.address}
-                technicianCoords={technicianCoords}
-                technicianName={booking.assignedTechnician?.name || booking.assignedTechnician?.user?.name}
-                eta={liveEta}
-                status={booking.status}
-              />
-            </div>
+            <BrandMap
+              mode="tracking"
+              customerCoords={booking.location?.coordinates || DEFAULT_MAP_CENTER.coordinates}
+              technicianCoords={technicianCoords}
+              technicianName={booking.assignedTechnician?.name || booking.assignedTechnician?.user?.name}
+              category={booking.category || booking.service?.category || 'plumbing'}
+              eta={liveEta}
+              distanceKm={routeData ? routeData.distanceMeters / 1000 : undefined}
+              routeGeometry={routeData?.geometry}
+              heightClass="h-[360px]"
+            />
           </div>
 
           {/* Service & Destination Details */}

@@ -4,6 +4,7 @@ const PlatformSettings = require('../models/PlatformSettings');
 const { calculateEstimate } = require('../services/booking/pricingEstimator');
 const { validateTransition, canTransition } = require('../services/booking/stateMachine');
 const { startDispatch } = require('../services/dispatch');
+const { getRoute } = require('../services/tracking/routeService');
 
 // Calculate Pricing Estimate (no booking created)
 const getEstimate = async (req, res, next) => {
@@ -376,6 +377,72 @@ const adminGetBookingDetail = async (req, res, next) => {
   }
 };
 
+// Get real route geometry, distance, duration for a booking
+// Authorized only for the booking's customer, assigned technician, or an admin
+const getBookingRoute = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findById(id).populate({
+      path: 'assignedTechnician',
+      select: 'user currentLocation',
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'BOOKING_NOT_FOUND', message: 'Booking not found' },
+      });
+    }
+
+    const userId = req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    const isCustomer = booking.customer && booking.customer.toString() === userId;
+    const isAssignedTech =
+      booking.assignedTechnician?.user &&
+      booking.assignedTechnician.user.toString() === userId;
+
+    if (!isAdmin && !isCustomer && !isAssignedTech) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Not authorized to view route for this booking' },
+      });
+    }
+
+    let origin = booking.assignedTechnician?.currentLocation?.coordinates;
+    let destination = booking.location?.coordinates;
+
+    if (booking.category === 'delivery' && booking.pickupLocation?.coordinates?.length === 2 && booking.dropoffLocation?.coordinates?.length === 2) {
+      if (!origin || booking.status === 'in_progress') {
+        origin = origin || booking.pickupLocation.coordinates;
+        destination = booking.dropoffLocation.coordinates;
+      } else {
+        destination = booking.pickupLocation.coordinates;
+      }
+    }
+
+    if (!Array.isArray(origin) || origin.length < 2 || !Array.isArray(destination) || destination.length < 2) {
+      return res.json({
+        success: true,
+        data: {
+          geometry: null,
+          distanceMeters: 0,
+          durationSeconds: 0,
+          source: 'estimate',
+        },
+      });
+    }
+
+    const routeData = await getRoute({ origin, destination });
+
+    return res.json({
+      success: true,
+      data: routeData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getEstimate,
   createBooking,
@@ -384,4 +451,5 @@ module.exports = {
   cancelMyBooking,
   adminListBookings,
   adminGetBookingDetail,
+  getBookingRoute,
 };

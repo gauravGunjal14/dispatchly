@@ -191,16 +191,23 @@ const filterCandidates = async (technicians, booking, settings) => {
       continue;
     }
 
-    // 7. Location Freshness check
-    const lastLocUpdate = tech.currentLocation?.updatedAt ? new Date(tech.currentLocation.updatedAt) : null;
-    if (!lastLocUpdate || now.getTime() - lastLocUpdate.getTime() > locationStaleMinutes * 60 * 1000) {
-      const ageMin = lastLocUpdate ? Math.round((now.getTime() - lastLocUpdate.getTime()) / 60000) : 'unknown';
-      rejected.push({
-        technician: tech,
-        reason: `Technician location is stale (${ageMin} min ago; max allowed is ${locationStaleMinutes} min)`,
-        code: 'LOCATION_STALE',
-      });
-      continue;
+    // 7. Location Freshness check (skipped when DEMO_FRESH_LOCATIONS=true for online, approved technicians)
+    const skipFreshnessCheck =
+      process.env.DEMO_FRESH_LOCATIONS === 'true' &&
+      tech.verificationStatus === 'approved' &&
+      tech.isAvailable === true;
+
+    if (!skipFreshnessCheck) {
+      const lastLocUpdate = tech.currentLocation?.updatedAt ? new Date(tech.currentLocation.updatedAt) : null;
+      if (!lastLocUpdate || now.getTime() - lastLocUpdate.getTime() > locationStaleMinutes * 60 * 1000) {
+        const ageMin = lastLocUpdate ? Math.round((now.getTime() - lastLocUpdate.getTime()) / 60000) : 'unknown';
+        rejected.push({
+          technician: tech,
+          reason: `Technician location is stale (${ageMin} min ago; max allowed is ${locationStaleMinutes} min)`,
+          code: 'LOCATION_STALE',
+        });
+        continue;
+      }
     }
 
     // 8. Working Hours check

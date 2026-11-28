@@ -23,7 +23,7 @@ import {
   FileText
 } from 'lucide-react';
 
-const LocationPickerMap = dynamic(() => import('@/components/maps/LocationPickerMap'), { ssr: false });
+const BrandMap = dynamic(() => import('@/components/map/BrandMap'), { ssr: false });
 
 function BookingWizard() {
   const router = useRouter();
@@ -570,37 +570,29 @@ function BookingWizard() {
                     </div>
                   </div>
 
-                  {/* Framed Map Container */}
-                  <div className="rounded-control border border-line overflow-hidden">
-                    <LocationPickerMap
-                      mode="delivery"
-                      pickupLocation={pickupLocation}
-                      dropoffLocation={dropoffLocation}
-                      onPickupChange={(coords) => setPickupLocation(coords)}
-                      onDropoffChange={(coords) => setDropoffLocation(coords)}
-                    />
-                  </div>
+                  {/* BrandMap Delivery Picker */}
+                  <BrandMap
+                    mode="delivery-picker"
+                    pickupCoords={pickupLocation}
+                    dropoffCoords={dropoffLocation}
+                    onPickupChange={(coords) => setPickupLocation(coords)}
+                    onDropoffChange={(coords) => setDropoffLocation(coords)}
+                    showPresets={true}
+                  />
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-ink">
-                      Street address
+                      Street address & quick Mumbai area presets
                     </label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-control border border-line bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 transition"
-                    />
-                  </div>
-
-                  {/* Framed Map Container */}
-                  <div className="rounded-control border border-line overflow-hidden">
-                    <LocationPickerMap
-                      mode="single"
-                      location={location}
+                    <BrandMap
+                      mode="picker"
+                      customerCoords={location}
                       onLocationChange={(coords) => setLocation(coords)}
+                      address={address}
+                      onAddressChange={setAddress}
+                      showPresets={true}
                     />
                   </div>
 

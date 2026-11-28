@@ -83,6 +83,12 @@ router.post(
   dispatchController.updateJobStatus
 );
 router.post(
+  '/jobs/:bookingId/simulate-travel',
+  authenticateToken,
+  authorizeRoles('technician'),
+  dispatchController.simulateTravelStep
+);
+router.post(
   '/jobs/:bookingId/quote',
   authenticateToken,
   authorizeRoles('technician'),

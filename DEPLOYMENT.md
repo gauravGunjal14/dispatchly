@@ -277,9 +277,13 @@ If JWT access or refresh secrets are compromised:
      - Adding distributed locks (e.g. `redlock` or MongoDB lease documents) to prevent sweepers on multiple instances from firing duplicate offers or reconciliations.
 2. **Mock Payment Gateway:**
    - The current payment implementation simulates credit card authorizations, settlements, and platform fee deductions using realistic transaction delays without charging live cards. To integrate live Stripe payments, configure Stripe Webhooks and replace `mockPaymentGateway.js` with `stripe.paymentIntents.create`.
-3. **OSRM Routing Traffic:**
-   - Geospatial distance and ETA calculations utilize the OpenStreetMap OSRM routing engine. Calculations reflect actual road networks and standard travel speeds, but do not integrate live traffic telemetry unless upgraded to Google Maps Distance Matrix or TomTom Traffic API.
-4. **Compute Resource Limits:**
+3. **Map Basemap & OSRM Routing Traffic (Demo vs Production):**
+   - **Map Tiles (`NEXT_PUBLIC_MAP_STYLE_URL`):** Defaults to the public OpenFreeMap instance (`https://tiles.openfreemap.org/styles/positron`). OpenFreeMap is donation-funded with **no SLA**. Before serving real customers, choose a paid provider (MapTiler, Mapbox, or Google Maps) — switching is purely a config change via `NEXT_PUBLIC_MAP_STYLE_URL` with zero code changes.
+   - **Routing (`OSRM_BASE_URL`):** The public OSRM server (`https://router.project-osrm.org`) is **demo-only** and rate-limited. Production deployments must point `OSRM_BASE_URL` to a hosted routing service (or private OSRM cluster).
+4. **Demo-Only Environment Flags (`DEMO_MODE` & `DEMO_FRESH_LOCATIONS`):**
+   - Both `DEMO_MODE` and `DEMO_FRESH_LOCATIONS` default to `false` and must **never** be enabled in production.
+   - When `DEMO_FRESH_LOCATIONS=true` (demo/staging only), the eligibility filter skips only the location staleness check for online, approved technicians while keeping every other eligibility rule intact.
+5. **Compute Resource Limits:**
    - Ensure your InsForge account subscription tier has sufficient credits and memory allocation for the container service (512MB RAM minimum is recommended). Check the InsForge dashboard for compute utilization and bandwidth metrics.
-5. **Platform Fee Configuration (`platformFeePerTicket`):**
+6. **Platform Fee Configuration (`platformFeePerTicket`):**
    - `PlatformSettings.platformFeePerTicket` defaults to `50` INR as a **placeholder** pending the operations team's final fee decision. Adjust it anytime from `/admin/settings`.

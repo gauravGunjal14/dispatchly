@@ -12,6 +12,7 @@
     "seed": "node src/scripts/seed.js",
     "seed:reset": "node src/scripts/seed.js",
     "reset:demo": "node src/scripts/resetDemo.js",
+    "seed:demo-activity": "node src/scripts/seedDemoActivity.js",
     "create:admin": "node src/scripts/createAdmin.js",
     "benchmark": "node src/scripts/benchmarkLatency.js",
     "sim:tech": "node src/scripts/simulateTechMovement.js",

@@ -6,6 +6,7 @@
 const DispatchOffer = require('../models/DispatchOffer');
 const Booking = require('../models/Booking');
 const TechnicianProfile = require('../models/TechnicianProfile');
+const { getRoute } = require('../services/tracking/routeService');
 const ReassignmentRequest = require('../models/ReassignmentRequest');
 const PlatformSettings = require('../models/PlatformSettings');
 const Quote = require('../models/Quote');
@@ -572,6 +573,93 @@ const decideReassignmentRequest = async (req, res, next) => {
   }
 };
 
+// 13. Demo-only: Validate and step/simulate travel along real route (blocked when DEMO_MODE !== 'true')
+const simulateTravelStep = async (req, res, next) => {
+  try {
+    if (process.env.DEMO_MODE !== 'true') {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'DEMO_MODE_DISABLED',
+          message: 'Travel simulation is disabled when DEMO_MODE is not enabled',
+        },
+      });
+    }
+
+    const { bookingId } = req.params;
+    const { coordinates, heading = 0, speed = 35, markArrived = false } = req.body;
+
+    const profile = await TechnicianProfile.findOne({ user: req.user._id });
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'PROFILE_NOT_FOUND', message: 'Technician profile not found' },
+      });
+    }
+
+    const booking = await Booking.findOne({ _id: bookingId, assignedTechnician: profile._id });
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'BOOKING_NOT_FOUND', message: 'Assigned booking not found' },
+      });
+    }
+
+    // If coordinates are supplied, push through the exact same validated & throttled location path
+    if (Array.isArray(coordinates) && coordinates.length === 2) {
+      const result = await processLocationUpdate({
+        technicianProfileId: profile._id,
+        coordinates,
+        heading,
+        speed,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (!result.success) {
+        return res.status(result.code === 'THROTTLED' ? 429 : 400).json({
+          success: false,
+          error: { code: result.code, message: result.message },
+        });
+      }
+
+      if (markArrived && booking.status === 'en_route') {
+        booking.status = 'arrived';
+        booking.arrivedAt = new Date();
+        booking.statusHistory.push({
+          status: 'arrived',
+          at: new Date(),
+          by: req.user._id,
+          note: 'Demo travel simulation arrived at destination',
+        });
+        await booking.save();
+      }
+
+      return res.json({
+        success: true,
+        data: { ...result, bookingStatus: booking.status },
+      });
+    }
+
+    // Otherwise return route waypoints for the client simulator
+    const origin = profile.currentLocation?.coordinates;
+    const destination = booking.location?.coordinates;
+    if (!origin || !destination) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_COORDINATES', message: 'Origin and destination coordinates required' },
+      });
+    }
+
+    const routeData = await getRoute({ origin, destination });
+    return res.json({
+      success: true,
+      data: { route: routeData },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getMyOffers,
   acceptMyOffer,
@@ -586,4 +674,5 @@ module.exports = {
   retryDispatchBooking,
   listReassignments,
   decideReassignmentRequest,
+  simulateTravelStep,
 };

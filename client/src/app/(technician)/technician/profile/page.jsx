@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 // Dynamically import map to disable SSR
-const ServiceAreaMap = dynamic(() => import('@/components/maps/ServiceAreaMap'), { ssr: false });
+const BrandMap = dynamic(() => import('@/components/map/BrandMap'), { ssr: false });
 
 export default function TechnicianProfilePage() {
   const { user } = useAuth();
@@ -457,10 +457,12 @@ export default function TechnicianProfilePage() {
               </div>
             </div>
 
-            <ServiceAreaMap
+            <BrandMap
+              mode="service-area"
               center={serviceCenter}
               radiusKm={radiusKm}
               onLocationChange={(newCenter) => setServiceCenter(newCenter)}
+              onRadiusChange={(r) => setRadiusKm(r)}
             />
 
             <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200">

@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient, getApiBaseUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { DEFAULT_MAP_CENTER } from '@/lib/config';
 import { formatMoney } from '@/lib/format';
+
+const BrandMap = dynamic(() => import('@/components/map/BrandMap'), { ssr: false });
+const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 import {
   Wrench,
   Package,
@@ -48,6 +52,12 @@ export default function TechnicianDashboardPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [gpsPinging, setGpsPinging] = useState(false);
   const [gpsSuccess, setGpsSuccess] = useState(false);
+  const [sharingLocation, setSharingLocation] = useState(false);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [routeData, setRouteData] = useState(null);
+  const [simSpeed, setSimSpeed] = useState(5);
+  const [simulatingTravel, setSimulatingTravel] = useState(false);
+  const simAbortRef = useRef(false);
 
   // Phase 6: Quote & Completion Modals
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
@@ -287,32 +297,166 @@ export default function TechnicianDashboardPage() {
     }
   };
 
+  const sendCurrentLocation = async (fallbackCoords) => {
+    const sendPatch = async (lat, lng) => {
+      const res = await apiClient('/technicians/location', {
+        method: 'PATCH',
+        body: JSON.stringify({ latitude: lat, longitude: lng }),
+      });
+      if (res.success) {
+        setGpsSuccess(true);
+        setSharingLocation(true);
+        setProfile((prev) => (prev ? { ...prev, currentLocation: res.data.currentLocation } : prev));
+        setTimeout(() => setGpsSuccess(false), 3000);
+      }
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            setLocationPermissionDenied(false);
+            try {
+              await sendPatch(pos.coords.latitude, pos.coords.longitude);
+            } catch (err) {
+              console.error('GPS heartbeat failed:', err);
+            }
+            resolve();
+          },
+          async (err) => {
+            if (err?.code === 1) {
+              setLocationPermissionDenied(true);
+            }
+            const base = fallbackCoords || profile?.serviceArea?.center?.coordinates || DEFAULT_MAP_CENTER.coordinates;
+            try {
+              await sendPatch(base[1], base[0]);
+            } catch (patchErr) {
+              console.error('Fallback location heartbeat failed:', patchErr);
+            }
+            resolve();
+          },
+          { timeout: 5000 }
+        );
+      });
+    }
+
+    const base = fallbackCoords || profile?.serviceArea?.center?.coordinates || DEFAULT_MAP_CENTER.coordinates;
+    await sendPatch(base[1], base[0]);
+  };
+
+  // 60-second location heartbeat when logged in, approved, and online
+  useEffect(() => {
+    if (profile?.verificationStatus !== 'approved' || !profile?.isAvailable) {
+      setSharingLocation(false);
+      return;
+    }
+
+    const fallback = profile?.serviceArea?.center?.coordinates || DEFAULT_MAP_CENTER.coordinates;
+    sendCurrentLocation(fallback);
+
+    const intervalId = setInterval(() => {
+      sendCurrentLocation(fallback);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [profile?.verificationStatus, profile?.isAvailable]);
+
+  // Fetch real route whenever active job changes
+  useEffect(() => {
+    if (!currentJob?._id) {
+      setRouteData(null);
+      return;
+    }
+    apiClient(`/bookings/${currentJob._id}/route`)
+      .then((res) => {
+        if (res.success && res.data) setRouteData(res.data);
+      })
+      .catch(() => {});
+  }, [currentJob?._id, currentJob?.status]);
+
   const handlePingGps = async () => {
     setGpsPinging(true);
     setGpsSuccess(false);
     try {
-      // Simulate slight realistic movement around default city center
-      const current = profile?.currentLocation?.coordinates || DEFAULT_MAP_CENTER.coordinates;
-      const jitterLng = current[0] + (Math.random() - 0.5) * 0.002;
-      const jitterLat = current[1] + (Math.random() - 0.5) * 0.002;
-
-      const res = await apiClient('/technicians/location', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          latitude: jitterLat,
-          longitude: jitterLng,
-        }),
-      });
-
-      if (res.success) {
-        setGpsSuccess(true);
-        setProfile((prev) => ({ ...prev, currentLocation: res.data.currentLocation }));
-        setTimeout(() => setGpsSuccess(false), 3000);
-      }
+      const fallback = profile?.serviceArea?.center?.coordinates || DEFAULT_MAP_CENTER.coordinates;
+      await sendCurrentLocation(fallback);
     } catch (err) {
       console.error('GPS update failed:', err);
     } finally {
       setGpsPinging(false);
+    }
+  };
+
+  const handleSimulateTravel = async () => {
+    if (!IS_DEMO_MODE || !currentJob?._id || simulatingTravel) return;
+    simAbortRef.current = false;
+    setSimulatingTravel(true);
+    setErrorMsg('');
+
+    try {
+      if (currentJob.status === 'assigned') {
+        await handleUpdateJobStatus('en_route');
+      }
+
+      const routeRes = await apiClient(`/bookings/${currentJob._id}/route`);
+      const coords = routeRes.data?.geometry?.coordinates || [
+        profile?.currentLocation?.coordinates || DEFAULT_MAP_CENTER.coordinates,
+        currentJob.location?.coordinates || DEFAULT_MAP_CENTER.coordinates,
+      ];
+      if (routeRes.data) setRouteData(routeRes.data);
+
+      // Sample up to 6 waypoints respecting the 3s server location throttle
+      const maxSteps = Math.min(6, Math.max(2, coords.length));
+      const waypoints = [];
+      for (let i = 0; i < maxSteps - 1; i++) {
+        waypoints.push(coords[Math.floor((i * (coords.length - 1)) / (maxSteps - 1))]);
+      }
+      waypoints.push(coords[coords.length - 1]);
+
+      const stepDelayMs = Math.max(3200, Math.round(10000 / simSpeed));
+
+      for (let i = 0; i < waypoints.length; i++) {
+        if (simAbortRef.current) break;
+        const point = waypoints[i];
+        const prev = i > 0 ? waypoints[i - 1] : point;
+        const heading = Math.round((Math.atan2(point[0] - prev[0], point[1] - prev[1]) * 180) / Math.PI + 360) % 360;
+        const isFinal = i === waypoints.length - 1;
+
+        const stepRes = await apiClient(`/technicians/jobs/${currentJob._id}/simulate-travel`, {
+          method: 'POST',
+          body: JSON.stringify({
+            coordinates: point,
+            heading,
+            speed: 35,
+            markArrived: isFinal,
+          }),
+        });
+
+        if (stepRes.success) {
+          setProfile((prevProf) =>
+            prevProf
+              ? {
+                  ...prevProf,
+                  currentLocation: { type: 'Point', coordinates: point, updatedAt: new Date().toISOString() },
+                }
+              : prevProf
+          );
+          if (stepRes.data?.eta) {
+            setCurrentJob((prevJob) => (prevJob ? { ...prevJob, eta: stepRes.data.eta } : prevJob));
+          }
+          if (isFinal) {
+            await fetchAllData();
+          }
+        }
+
+        if (!isFinal && !simAbortRef.current) {
+          await new Promise((r) => setTimeout(r, stepDelayMs));
+        }
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Travel simulation failed');
+    } finally {
+      setSimulatingTravel(false);
     }
   };
 
@@ -354,7 +498,18 @@ export default function TechnicianDashboardPage() {
         </div>
 
         {/* Action Controls: GPS Ping & Online Toggle */}
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {sharingLocation && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-control bg-status-success-tint text-status-success-text text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-status-success" />
+              Sharing location
+            </span>
+          )}
+          {locationPermissionDenied && (
+            <span className="text-xs text-status-danger-text font-medium">
+              Location permission denied — using service-area center
+            </span>
+          )}
           <button
             onClick={handlePingGps}
             disabled={gpsPinging}
@@ -617,6 +772,54 @@ export default function TechnicianDashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* Active Job Live Route Map */}
+          <BrandMap
+            mode="tracking"
+            customerCoords={currentJob.location?.coordinates || DEFAULT_MAP_CENTER.coordinates}
+            technicianCoords={profile?.currentLocation?.coordinates || profile?.serviceArea?.center?.coordinates}
+            technicianName={user?.name}
+            category={currentJob.category || 'plumbing'}
+            eta={currentJob.eta}
+            distanceKm={routeData ? routeData.distanceMeters / 1000 : undefined}
+            routeGeometry={routeData?.geometry}
+            heightClass="h-64 sm:h-72"
+          />
+
+          {/* Demo-only Simulate Travel Control */}
+          {IS_DEMO_MODE && ['assigned', 'en_route'].includes(currentJob.status) && (
+            <div className="p-3.5 rounded-panel border border-line bg-concrete flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="text-xs font-bold text-ink">Demo route simulator</div>
+                <div className="text-xs text-ink/70">Moves technician along the real route geometry via validated location updates.</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex rounded-control border border-line bg-white overflow-hidden">
+                  {[1, 5, 10].map((spd) => (
+                    <button
+                      key={spd}
+                      type="button"
+                      disabled={simulatingTravel}
+                      onClick={() => setSimSpeed(spd)}
+                      className={`px-2.5 py-1 text-xs font-semibold transition ${
+                        simSpeed === spd ? 'bg-ink text-white' : 'text-ink hover:bg-concrete'
+                      }`}
+                    >
+                      {spd}x
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSimulateTravel}
+                  disabled={simulatingTravel}
+                  className="px-3.5 py-1.5 rounded-control bg-amber hover:bg-amber/90 text-ink text-xs font-bold transition disabled:opacity-50"
+                >
+                  {simulatingTravel ? 'Simulating...' : 'Simulate travel'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Workflow Step Transitions */}
           <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
