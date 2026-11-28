@@ -384,7 +384,7 @@ function BookingWizard() {
                   </h2>
                 </div>
                 <p className="text-xs text-ink/70">
-                  Provide details so the dispatch engine can match parts and tools in the technician's van.
+                  Provide details so we can match a technician with the right parts and tools in their van.
                 </p>
               </div>
 
@@ -539,7 +539,9 @@ function BookingWizard() {
                     : 'Confirm service location'}
                 </h2>
                 <p className="text-xs text-ink/70">
-                  Drop a pin so the dispatch engine can calculate travel distance and dispatch feasibility.
+                  {selectedService.category.toLowerCase() === 'delivery'
+                    ? 'Set where we should pick up and where to deliver, so we can find a nearby courier.'
+                    : 'Set your service location so we can find a nearby technician and estimate travel time.'}
                 </p>
               </div>
 
@@ -669,7 +671,7 @@ function BookingWizard() {
                   <span>How your booking proceeds:</span>
                 </div>
                 <ul className="space-y-1 text-ink/80 list-disc list-inside">
-                  <li>Our dispatch engine sends an offer to the highest-scoring qualified technician.</li>
+                  <li>We send an offer to the best-fit qualified technician.</li>
                   <li>Technicians have 60 seconds to accept before auto-reassignment to the next candidate.</li>
                   <li>You will track your technician live on the map with expected arrival time.</li>
                   <li>For diagnostic jobs, you review and approve an itemised quote before any work starts.</li>
@@ -757,15 +759,10 @@ function BookingWizard() {
               ) : null}
             </div>
 
-            {/* Arrival Deadline Notice */}
-            <div className="space-y-1.5 text-xs text-ink/70">
-              <div className="flex items-center gap-2 font-semibold text-ink">
-                <Clock className="w-4 h-4 text-ink/60 flex-shrink-0" />
-                <span>Arrival deadline: about 2 hours</span>
-              </div>
-              <p className="text-xs text-ink/60 pl-6">
-                Target arrival time: about 2 hours.
-              </p>
+            {/* Target Arrival Notice */}
+            <div className="flex items-center gap-2 text-xs font-semibold text-ink">
+              <Clock className="w-4 h-4 text-ink/60 flex-shrink-0" />
+              <span>Target arrival time: about 2 hours.</span>
             </div>
 
             {/* Test Mode Banner */}

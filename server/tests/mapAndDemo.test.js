@@ -6,6 +6,7 @@ const { filterCandidates } = require('../src/services/dispatch/eligibilityFilter
 const { parseSimArgs, sampleWaypoints } = require('../src/scripts/simulateTechMovement');
 const { parseActivityArgs, assertNoExistingActivity } = require('../src/scripts/seedDemoActivity');
 const Booking = require('../src/models/Booking');
+const TechnicianProfile = require('../src/models/TechnicianProfile');
 const User = require('../src/models/User');
 const { generateTokens } = require('../src/config/jwt');
 
@@ -139,6 +140,144 @@ describe('MapLibre Routing, Demo Simulation, Freshness Flag & Activity Seed Guar
       expect(res.body.error.code).toBe('DEMO_MODE_DISABLED');
     });
 
+    it('returns 401 for unauthenticated user on simulate-travel', async () => {
+      process.env.DEMO_MODE = 'true';
+      const bookingId = new mongoose.Types.ObjectId();
+
+      const res = await request(app)
+        .post(`/api/technicians/jobs/${bookingId}/simulate-travel`)
+        .send({ coordinates: [72.8479, 19.1197] });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 403 for customer or admin without technician role on simulate-travel', async () => {
+      process.env.DEMO_MODE = 'true';
+      const bookingId = new mongoose.Types.ObjectId();
+
+      for (const role of ['customer', 'admin']) {
+        const userId = new mongoose.Types.ObjectId();
+        jest.spyOn(User, 'findById').mockResolvedValueOnce({
+          _id: userId,
+          role,
+          isActive: true,
+          tokenVersion: 0,
+        });
+        const { accessToken } = generateTokens({ _id: userId, role, tokenVersion: 0 });
+
+        const res = await request(app)
+          .post(`/api/technicians/jobs/${bookingId}/simulate-travel`)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .send({ coordinates: [72.8479, 19.1197] });
+
+        expect(res.status).toBe(403);
+      }
+    });
+
+    it('returns 403 for a different technician not assigned to the booking', async () => {
+      process.env.DEMO_MODE = 'true';
+      const otherTechUserId = new mongoose.Types.ObjectId();
+      const otherTechProfileId = new mongoose.Types.ObjectId();
+      const assignedTechProfileId = new mongoose.Types.ObjectId();
+      const bookingId = new mongoose.Types.ObjectId();
+
+      jest.spyOn(User, 'findById').mockResolvedValueOnce({
+        _id: otherTechUserId,
+        role: 'technician',
+        isActive: true,
+        tokenVersion: 0,
+      });
+      jest.spyOn(TechnicianProfile, 'findOne').mockResolvedValueOnce({
+        _id: otherTechProfileId,
+        user: otherTechUserId,
+      });
+      jest.spyOn(Booking, 'findById').mockResolvedValueOnce({
+        _id: bookingId,
+        status: 'en_route',
+        assignedTechnician: assignedTechProfileId,
+      });
+
+      const { accessToken } = generateTokens({ _id: otherTechUserId, role: 'technician', tokenVersion: 0 });
+
+      const res = await request(app)
+        .post(`/api/technicians/jobs/${bookingId}/simulate-travel`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ coordinates: [72.8479, 19.1197] });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('rejects non-active travel states (e.g. completed) even for the assigned technician', async () => {
+      process.env.DEMO_MODE = 'true';
+      const techUserId = new mongoose.Types.ObjectId();
+      const techProfileId = new mongoose.Types.ObjectId();
+      const bookingId = new mongoose.Types.ObjectId();
+
+      jest.spyOn(User, 'findById').mockResolvedValueOnce({
+        _id: techUserId,
+        role: 'technician',
+        isActive: true,
+        tokenVersion: 0,
+      });
+      jest.spyOn(TechnicianProfile, 'findOne').mockResolvedValueOnce({
+        _id: techProfileId,
+        user: techUserId,
+      });
+      jest.spyOn(Booking, 'findById').mockResolvedValueOnce({
+        _id: bookingId,
+        status: 'completed',
+        assignedTechnician: techProfileId,
+      });
+
+      const { accessToken } = generateTokens({ _id: techUserId, role: 'technician', tokenVersion: 0 });
+
+      const res = await request(app)
+        .post(`/api/technicians/jobs/${bookingId}/simulate-travel`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ coordinates: [72.8479, 19.1197] });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_BOOKING_STATE');
+    });
+
+    it('allows simulate-travel for the assigned technician while booking is en_route', async () => {
+      process.env.DEMO_MODE = 'true';
+      const techUserId = new mongoose.Types.ObjectId();
+      const techProfileId = new mongoose.Types.ObjectId();
+      const bookingId = new mongoose.Types.ObjectId();
+
+      jest.spyOn(User, 'findById').mockResolvedValueOnce({
+        _id: techUserId,
+        role: 'technician',
+        isActive: true,
+        tokenVersion: 0,
+      });
+      jest.spyOn(TechnicianProfile, 'findOne').mockResolvedValueOnce({
+        _id: techProfileId,
+        user: techUserId,
+        currentLocation: { coordinates: [72.8479, 19.1197] },
+      });
+      jest.spyOn(Booking, 'findById').mockResolvedValueOnce({
+        _id: bookingId,
+        status: 'en_route',
+        assignedTechnician: techProfileId,
+        location: { coordinates: [72.8295, 19.1364] },
+      });
+      global.fetch = jest.fn().mockRejectedValue(new Error('Fallback estimate'));
+
+      const { accessToken } = generateTokens({ _id: techUserId, role: 'technician', tokenVersion: 0 });
+
+      const res = await request(app)
+        .post(`/api/technicians/jobs/${bookingId}/simulate-travel`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.route).toBeDefined();
+    });
+
     it('parses CLI --booking and --speed flags and samples route waypoints', () => {
       expect(parseSimArgs(['--booking=abc123', '--speed=10'])).toEqual({
         bookingId: 'abc123',
@@ -222,6 +361,42 @@ describe('MapLibre Routing, Demo Simulation, Freshness Flag & Activity Seed Guar
       });
       expect(() => assertNoExistingActivity(5, false)).toThrow(/--force/i);
       expect(() => assertNoExistingActivity(5, true)).not.toThrow();
+    });
+  });
+
+  describe('6. Map Style Config & Fallback Logic', () => {
+    it('falls back to OpenFreeMap positron when NEXT_PUBLIC_MAP_STYLE_URL is empty or whitespace', () => {
+      const { execFileSync } = require('child_process');
+      const path = require('path');
+      const configUrl = require('url').pathToFileURL(
+        path.resolve(__dirname, '../../client/src/lib/config.js')
+      ).href;
+
+      const output = execFileSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          `import { getMapStyleUrl, getFallbackMapStyleUrl } from '${configUrl}';
+           console.log(JSON.stringify({
+             empty: getMapStyleUrl(''),
+             spaces: getMapStyleUrl('   '),
+             undef: getMapStyleUrl(undefined),
+             custom: getMapStyleUrl('https://custom.style/map.json'),
+             fbEmpty: getFallbackMapStyleUrl(''),
+             fbCustom: getFallbackMapStyleUrl('https://fallback.style/map.json')
+           }));`,
+        ],
+        { encoding: 'utf8' }
+      );
+
+      const parsed = JSON.parse(output.trim());
+      expect(parsed.empty).toBe('https://tiles.openfreemap.org/styles/positron');
+      expect(parsed.spaces).toBe('https://tiles.openfreemap.org/styles/positron');
+      expect(parsed.undef).toBe('https://tiles.openfreemap.org/styles/positron');
+      expect(parsed.custom).toBe('https://custom.style/map.json');
+      expect(parsed.fbEmpty).toBe('');
+      expect(parsed.fbCustom).toBe('https://fallback.style/map.json');
     });
   });
 });

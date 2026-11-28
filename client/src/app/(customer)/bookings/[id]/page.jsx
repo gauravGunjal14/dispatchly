@@ -561,7 +561,7 @@ export default function BookingDetailPage() {
                 <span className="w-2 h-2 rounded-full bg-amber animate-pulse" />
               </div>
               <p className="text-xs text-ink/70 leading-relaxed">
-                The dispatch engine is scoring eligible technicians based on skills, van parts, and your arrival deadline.
+                We are matching qualified technicians based on skills, van parts, and your arrival deadline.
               </p>
             </div>
           )}

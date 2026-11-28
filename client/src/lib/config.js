@@ -13,8 +13,22 @@ export const DEFAULT_MAP_CENTER = {
 
 export const DEFAULT_CURRENCY = 'INR';
 
-export const DEFAULT_MAP_STYLE_URL =
-  process.env.NEXT_PUBLIC_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/positron';
+export const OPENFREEMAP_DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+
+export function getMapStyleUrl(overrideEnv) {
+  const raw = overrideEnv !== undefined ? overrideEnv : process.env.NEXT_PUBLIC_MAP_STYLE_URL;
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  return trimmed || OPENFREEMAP_DEFAULT_STYLE_URL;
+}
+
+export function getFallbackMapStyleUrl(overrideEnv) {
+  const raw = overrideEnv !== undefined ? overrideEnv : process.env.NEXT_PUBLIC_MAP_STYLE_URL_FALLBACK;
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  return trimmed || '';
+}
+
+export const DEFAULT_MAP_STYLE_URL = getMapStyleUrl();
+export const DEFAULT_MAP_STYLE_URL_FALLBACK = getFallbackMapStyleUrl();
 
 export const MUMBAI_AREA_PRESETS = [
   { label: 'Andheri West', coordinates: [72.8295, 19.1364], address: 'Andheri West, Link Road, Mumbai 400053' },

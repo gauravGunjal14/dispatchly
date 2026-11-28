@@ -597,11 +597,28 @@ const simulateTravelStep = async (req, res, next) => {
       });
     }
 
-    const booking = await Booking.findOne({ _id: bookingId, assignedTechnician: profile._id });
+    const booking = await Booking.findById(bookingId);
     if (!booking) {
       return res.status(404).json({
         success: false,
-        error: { code: 'BOOKING_NOT_FOUND', message: 'Assigned booking not found' },
+        error: { code: 'BOOKING_NOT_FOUND', message: 'Booking not found' },
+      });
+    }
+
+    if (!booking.assignedTechnician || booking.assignedTechnician.toString() !== profile._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Only the assigned technician can simulate travel for this booking' },
+      });
+    }
+
+    if (!['assigned', 'en_route'].includes(booking.status)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_BOOKING_STATE',
+          message: `Travel simulation is only allowed when booking is assigned or en_route (current: ${booking.status})`,
+        },
       });
     }
 

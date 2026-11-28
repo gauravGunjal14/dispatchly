@@ -3,7 +3,55 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Plus, Minus, Navigation, AlertTriangle, RotateCcw, Clock } from 'lucide-react';
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_STYLE_URL, MUMBAI_AREA_PRESETS } from '@/lib/config';
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_STYLE_URL,
+  DEFAULT_MAP_STYLE_URL_FALLBACK,
+  MUMBAI_AREA_PRESETS,
+} from '@/lib/config';
+
+export const MAP_ERROR_MESSAGES = {
+  webgl: "Your browser can't display the map. Turn on hardware acceleration in your browser settings, then reload.",
+  tiles: "We couldn't load the map. Check your connection and try again.",
+};
+
+/**
+ * Checks whether WebGL is available in the current browser before initializing MapLibre GL.
+ */
+export function isWebGLSupported() {
+  if (typeof document === 'undefined') return false;
+  try {
+    const canvas = document.createElement('canvas');
+    return Boolean(
+      typeof window !== 'undefined' &&
+        window.WebGLRenderingContext &&
+        (canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pure state transition for style load failures:
+ * 1) Retry primary style once
+ * 2) Switch to fallback style if configured and distinct
+ * 3) Otherwise give up and surface ErrorState
+ */
+export function resolveNextStyleAttempt({
+  primaryRetryUsed = false,
+  fallbackUsed = false,
+  primaryUrl = DEFAULT_MAP_STYLE_URL,
+  fallbackUrl = DEFAULT_MAP_STYLE_URL_FALLBACK,
+}) {
+  if (!primaryRetryUsed) {
+    return { action: 'retry_primary', styleUrl: primaryUrl, primaryRetryUsed: true, fallbackUsed };
+  }
+  if (!fallbackUsed && fallbackUrl && fallbackUrl !== primaryUrl) {
+    return { action: 'use_fallback', styleUrl: fallbackUrl, primaryRetryUsed: true, fallbackUsed: true };
+  }
+  return { action: 'fail', styleUrl: null, primaryRetryUsed: true, fallbackUsed };
+}
 
 /**
  * Generates a geodesic circle GeoJSON polygon around [lng, lat] with radiusKm.
@@ -150,9 +198,11 @@ export default function BrandMap({
   const lastTechPosRef = useRef(technicianCoords || null);
 
   const [loading, setLoading] = useState(true);
-  const [mapError, setMapError] = useState(false);
+  const [errorType, setErrorType] = useState(null); // null | 'webgl' | 'tiles'
   const [scrollUnlocked, setScrollUnlocked] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const mapError = Boolean(errorType);
+  const styleStateRef = useRef({ primaryRetryUsed: false, fallbackUsed: false, loaded: false });
 
   const applyBrandStyleTweaks = useCallback((map) => {
     try {
@@ -232,13 +282,23 @@ export default function BrandMap({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setMapError(false);
+    setErrorType(null);
+    styleStateRef.current = { primaryRetryUsed: false, fallbackUsed: false, loaded: false };
+
+    if (!isWebGLSupported()) {
+      setLoading(false);
+      setErrorType('webgl');
+      return;
+    }
 
     (async () => {
       try {
         const maplibreglModule = await import('maplibre-gl');
         const maplibregl = maplibreglModule.default || maplibreglModule;
         if (cancelled || !containerRef.current) return;
+        if (typeof maplibregl.setWorkerUrl === 'function') {
+          maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
+        }
         maplibreRef.current = maplibregl;
 
         const initialCenter =
@@ -259,18 +319,66 @@ export default function BrandMap({
 
         mapRef.current = map;
 
-        map.on('load', () => {
+        const onStyleReady = () => {
           if (cancelled) return;
+          styleStateRef.current.loaded = true;
           applyBrandStyleTweaks(map);
           ensureRouteLayers(map);
           ensureServiceAreaLayers(map);
           setLoading(false);
+          setErrorType(null);
+        };
+
+        map.on('load', onStyleReady);
+        map.on('style.load', () => {
+          if (cancelled) return;
+          applyBrandStyleTweaks(map);
+          ensureRouteLayers(map);
+          ensureServiceAreaLayers(map);
         });
 
-        map.on('error', () => {
+        map.on('error', (event) => {
           if (cancelled) return;
-          setLoading(false);
-          setMapError(true);
+          const errObj = event?.error || {};
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('[BrandMap Error]', {
+              message: errObj.message || 'Unknown MapLibre error',
+              status: errObj.status,
+              url: errObj.url || event?.sourceId,
+              error: errObj,
+            });
+          }
+
+          // If WebGL context lost or failed during init
+          if (errObj.message && /webgl/i.test(errObj.message)) {
+            setLoading(false);
+            setErrorType('webgl');
+            return;
+          }
+
+          // Retry once on primary style, then switch to fallback style if configured
+          if (!styleStateRef.current.loaded || (errObj.status && errObj.status >= 400)) {
+            const next = resolveNextStyleAttempt({
+              primaryRetryUsed: styleStateRef.current.primaryRetryUsed,
+              fallbackUsed: styleStateRef.current.fallbackUsed,
+              primaryUrl: DEFAULT_MAP_STYLE_URL,
+              fallbackUrl: DEFAULT_MAP_STYLE_URL_FALLBACK,
+            });
+
+            if (next.action === 'retry_primary' || next.action === 'use_fallback') {
+              styleStateRef.current.primaryRetryUsed = next.primaryRetryUsed;
+              styleStateRef.current.fallbackUsed = next.fallbackUsed;
+              try {
+                map.setStyle(next.styleUrl, { diff: false });
+                return;
+              } catch {
+                // Fall through to tiles ErrorState
+              }
+            }
+
+            setLoading(false);
+            setErrorType('tiles');
+          }
         });
 
         if (mode === 'picker' || mode === 'service-area') {
@@ -282,10 +390,13 @@ export default function BrandMap({
             if (onLocationChange) onLocationChange(coords);
           });
         }
-      } catch {
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[BrandMap Init Error]', err?.message || err);
+        }
         if (!cancelled) {
           setLoading(false);
-          setMapError(true);
+          setErrorType(err?.message && /webgl/i.test(err.message) ? 'webgl' : 'tiles');
         }
       }
     })();
@@ -611,22 +722,31 @@ export default function BrandMap({
           </div>
         )}
 
-        {/* ErrorState with Retry */}
+        {/* ErrorState with Retry (renders only inside the map area; never blocks form inputs) */}
         {mapError && (
-          <div className="absolute inset-0 bg-white flex flex-col items-center justify-center p-6 text-center gap-3 z-20">
+          <div
+            role="alert"
+            className="absolute inset-0 bg-white flex flex-col items-center justify-center p-6 text-center gap-3 z-20"
+          >
             <AlertTriangle className="w-7 h-7 text-status-danger" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-ink">Unable to load map tiles</p>
-              <p className="text-xs text-ink/70">Check your connection and try loading the map again.</p>
+            <div className="space-y-1 max-w-sm">
+              <p className="text-sm font-semibold text-ink">
+                {errorType === 'webgl' ? 'Map display unavailable' : 'Unable to load map'}
+              </p>
+              <p className="text-sm text-ink/80">
+                {MAP_ERROR_MESSAGES[errorType] || MAP_ERROR_MESSAGES.tiles}
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setRetryCount((c) => c + 1)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control border border-line bg-white hover:bg-concrete text-xs font-semibold text-ink"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Retry</span>
-            </button>
+            {errorType !== 'webgl' && (
+              <button
+                type="button"
+                onClick={() => setRetryCount((c) => c + 1)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control border border-line bg-white hover:bg-concrete text-xs font-semibold text-ink"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </button>
+            )}
           </div>
         )}
 
